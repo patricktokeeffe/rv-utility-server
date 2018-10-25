@@ -519,12 +519,9 @@ sudo nano /etc/nut/nut.conf
 -MODE=none
 +MODE=netserver
 ```
-
-
-
-
-
-
+```
+sudo systemctl restart nut-server.service
+```
 
 
 ### System Monitoring Service (*RPi-Monitor*)
@@ -593,10 +590,22 @@ Further to-do:
     * SSH
 * record statistics for VPN traffic? somehow?
 
+> **Performance testing notes**
+>
+> The following items have been held back so that RPi-Monitor can collect
+> baseline performance data:
+>
+> * graphical vs. command line desktop boot
+> * for the VPN (ocserv), the use of DTLS vs. TCP BBR
 
 
+### FTP Server (*vsftpd*)
 
+Install so the Conext Combox has somewhere to push event log files?
+* https://www.digitalocean.com/community/tutorials/how-to-set-up-vsftpd-for-a-user-s-directory-on-ubuntu-16-04
+* https://help.ubuntu.com/lts/serverguide/ftp-server.html
 
+Probably better approach: enable FTP service on NAS unit (Synology DS218?)
 
 
 
