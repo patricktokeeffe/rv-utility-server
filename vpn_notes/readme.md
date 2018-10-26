@@ -246,6 +246,9 @@ Looks like it starts up normally:
 ![screenshot](2018_10_22_18_15_33_Cmder.png)
 
 BUT it clearly has errors (`<REDACTED>` is the server public IP address):
+
+![screenshot](2018_10_22_18_15_50_Cmder.png)
+
 ```
 2018-10-22 18:14:47 | 2dfc | POST https://<REDACTED>/
 2018-10-22 18:14:47 | 2dfc | Attempting to connect to server <REDACTED>:443
@@ -574,6 +577,235 @@ BUT it clearly has errors (`<REDACTED>` is the server public IP address):
 2018-10-22 18:15:28 | 2dfc | Initiating IPv4 MTU detection (min=654, max=1309)
 2018-10-22 18:15:28 | 2dfc | No change in MTU after detection (was 1309)
 ```
+
+* OTOH, am still connected, though have apparently no routes to LAN
+    * changed IP address 192.168.1.205 &rarr; 192.168.3.205 
+    * could not reach 192.168.3.20 via http or ping
+    * reverted to ![original settings](2018_10_22_18_24_15_Internet_Protocol_Version_4_TCP_IPv4_Properties.png)
+        * note there is no default gateway set
+        * note the DNS server is per config file
+
+* modified ocserv config to have no DNS server specified...
+    * no apparent change.. even DNS server 192.168.1.2 is still specified somehow
+
+* modified ocserv config to have no routes (e.g. be default route)...
+    * OK, includes a default gateway now (the VPN server IP of 192.168.1.1)
+    * windows still says no internet access, confirmed cannot reach `wtfismyip.com`
+
+* enabled IP forwarding
+    * NOPE, still no network connection generally
+
+* "configure firewall for IP masquerading"
+    * FINALLY have access to internet via vpn
+
+* backtracking now --> try putting VPN on LAN
+    * set network: 192.168.1.0 &rarr; 192.168.3.0
+    * enable `ping-leases`
+    * restart....
+    * OK, can still reach 192.168.3.20 and 192.168.3.21
+    * but cannot reach router (192.168.3.1) because VPN using that IP
+
+* next step: enable proxy_arp per ocserv recipe
+    * moved server address to 192.168.3.250/24
+    * No change: can still connect to .20 and .21, but not .1 (router)
+    * Still seeing weird DNS server advertised (disabled in config)  
+      ![screenshot](2018_10_22_18_57_04_Internet_Protocol_Version_4_TCP_IPv4_Properties.png)
+
+* specify a DNS server in ocserv config
+    * uncommment line and update 192.168.1.2 --> 192.168.3.1
+    * indeterminate problem:
+        * CANNOT reach 192.168.3.20 anymore
+        * DO get modem WAN IP from `wtfismyip.com`
+        * CAN reach 192.168.3.21 still
+        * CANNOT see 192.168.3.1 yet still
+
+* reverted DNS additions in ocserv config file
+    * appears to be a "sticky" setting somehow? --> both IPs are listed now
+    * ![screenshot](2018_10_22_19_07_42_Network_Connection_Details.png)
+
+* side observation: commenting out `route` directives is NOT enough to cause
+  param `tunnel-all-dns = true` to become it's alleged default value of true
+    * removed `no-route` directive by commenting out
+    * still see `tunnel-all-dns=false` in log output
+
+* continue without re-enabling the `no-route` directive
+    * still getting very weird DNS settings from vpn
+    * ![screenshot](2018_10_22_19_27_44_Internet_Protocol_Version_4_TCP_IPv4_Properties.png)
+    * manually changed windows adapter settings to use change dns server value
+      192.168.1.2 -> 192.168.3.1
+    * seems to work OK... still can't reach router (.1) but can see NPort and Combox
+
+
+----
+
+2018-10-23
+
+Is it possibly required to re-issue the iptables postrouting statement
+after ocserv crashes...?
+
+[Speed testing!](speedtest.net) Method:
+1. connect to VPN
+2. ensure iptables POSTROUTING command has been issued if ocserv restarted
+3. run speed test
+
+
+* WSU network (baseline): [47/153.48/30.22](http://www.speedtest.net/result/7741539770)
+* connected to ocserv via VZW 4G modems
+    * per linuxbabe.com basic config: [222/3.67/1.11](http://www.speedtest.net/result/7741546292)
+    * plus compression enabled: 
+        * two latency errors from website itself
+        * started a test but timed out during upload phase
+        * website test wouldn't start so refreshed
+        * test once again stalls during upload (239/3.96/*)
+    * once again without compression: [229/2.06/1.66](http://www.speedtest.net/result/7741569411)
+    * after enabling TCP BBR, but not before disabling DTLS: 
+        * got latency test error --> refreshed
+        * website test wouldn't start
+        * more 'latency test error' notices
+    * and after disabling DTLS: [225/4.63/0.50](http://www.speedtest.net/result/7741587173)
+        * test not completed, received "socket error" warning
+        * another run: [249/3.95/0.47](http://www.speedtest.net/result/7741599580)
+        * another run: [249/4.91/0.48](http://www.speedtest.net/result/7741603777)
+        * another run: failed during upload stage (218/3.87/*)
+    * after reverting TCP BBR and turning back on DTLS, but w/o compression (aka linuxbabe basic config):
+        * first run: [208/3.19/1.66](http://www.speedtest.net/result/7741622746)
+        * second run: failed "upload test error: a socker error occurred..." (205/4.53/*)
+        * 
+
+later at night, turned back on TCP BBR and disabled UDP to test whether it would eliminate
+the crashes...
+
+----
+
+2018-10-24
+
+No, it has not eliminate the crashes switching to TCP BBR. 
+
+Error produced this morning:
+```
+Oct 24 07:21:23 dmz ocserv[15016]: worker[lar]: [REDACTED] Include route 192.168.3.0/255.255.255.0
+Oct 24 07:21:24 dmz ocserv[12624]: sec-mod: using 'pam' authentication to authenticate user (session: oMWRU)
+Oct 24 07:21:24 dmz ocserv[12624]: PAM-auth conv: echo-off, msg: 'Password: '
+Oct 24 07:21:25 dmz ocserv[12620]: main: main-sec-mod-cmd.c:90: command socket for sec-mod closed
+Oct 24 07:21:25 dmz ocserv[15015]: common.c:377: recvmsg returned zero
+Oct 24 07:21:25 dmz ocserv[12620]: main: main.c:1304: error in command from sec-mod
+Oct 24 07:21:25 dmz ocserv[12620]: main: termination request received; waiting for children to die
+Oct 24 07:21:25 dmz ocserv[12620]: main[lar]: [REDACTED]:53636 user disconnected (rx: 0, tx: 0)
+Oct 24 07:21:25 dmz ocserv[12620]: main: [REDACTED]:53242 user disconnected (rx: 0, tx: 0)
+Oct 24 07:21:25 dmz ocserv[15016]: worker[lar]: [REDACTED] worker-misc.c:97: parent terminated
+```
+
+Added params to systemd service file to automatically restart... did not reload
+daemon or restart service, waited for it to crash again...
+```
+Oct 24 10:57:01 dmz ocserv[24639]: worker[lar]: [REDACTED] Include route 192.168.3.0/255.255.255.0
+Oct 24 10:57:01 dmz ocserv[15850]: main[lar]: [REDACTED]:60242 user logged in
+Oct 24 10:57:38 dmz ocserv[15850]: main[lar]: [REDACTED]:60242 user disconnected (rx: 0, tx: 0)
+Oct 24 10:57:38 dmz ocserv[15854]: sec-mod: temporarily closing session for lar (session: 6O91d)
+Oct 24 10:57:38 dmz ocserv[15850]: *** Error in `ocserv-secm': malloc(): smallbin double linked list corrupted: 0x015aee90 ***
+Oct 24 10:57:38 dmz ocserv[24806]: common.c:377: recvmsg returned zero
+Oct 24 10:57:38 dmz ocserv[15850]: main: main-sec-mod-cmd.c:90: command socket for sec-mod closed
+Oct 24 10:57:38 dmz ocserv[15850]: main: main.c:1304: error in command from sec-mod
+Oct 24 10:57:38 dmz ocserv[15850]: main: termination request received; waiting for children to die
+Oct 24 10:57:38 dmz ocserv[15850]: main: [REDACTED]:60297 user disconnected (rx: 0, tx: 0)
+Warning: ocserv.service changed on disk. Run 'systemctl daemon-reload' to reload units.
+```
+
+and corresponding client log:
+```
+2018-10-24 10:57:38 | 13ac | SSL read error: The TLS connection was non-properly terminated.; reconnecting.
+2018-10-24 10:57:38 | 13ac | SSL negotiation with [REDACTED]
+2018-10-24 10:57:38 | 13ac | SSL connection failure: The TLS connection was non-properly terminated.
+2018-10-24 10:57:38 | 13ac | sleep 10s, remaining timeout 60s
+2018-10-24 10:57:51 | 13ac | Failed to reconnect to host [REDACTED]: No connection could be made because the target machine actively refused it.
+2018-10-24 10:57:51 | 13ac | sleep 20s, remaining timeout 50s
+2018-10-24 10:58:13 | 13ac | Failed to reconnect to host [REDACTED]: No connection could be made because the target machine actively refused it.
+2018-10-24 10:58:13 | 13ac | sleep 30s, remaining timeout 30s
+2018-10-24 10:58:45 | 13ac | Failed to reconnect to host [REDACTED]: No connection could be made because the target machine actively refused it.
+2018-10-24 10:58:45 | 13ac | Reconnect failed
+```
+
+Again, for good measure:
+```
+Oct 24 12:57:03 dmz ocserv[855]: worker[lar]: [REDACTED] Include route 192.168.3.0/255.255.255.0
+Oct 24 12:57:40 dmz ocserv[855]: worker[lar]: [REDACTED] sent periodic stats (in: 33256, out: 22735) to sec-mod
+Oct 24 12:57:40 dmz ocserv[25040]: main[lar]: [REDACTED]:54233 user disconnected (rx: 0, tx: 0)
+Oct 24 12:57:40 dmz ocserv[25044]: sec-mod: temporarily closing session for lar (session: XWA0F)
+Oct 24 12:57:40 dmz ocserv[25040]: *** Error in `ocserv-secm': malloc(): smallbin double linked list corrupted: 0x01fc4e90 ***
+Oct 24 12:57:40 dmz ocserv[1024]: common.c:377: recvmsg returned zero
+Oct 24 12:57:40 dmz ocserv[25040]: main: main-sec-mod-cmd.c:90: command socket for sec-mod closed
+Oct 24 12:57:40 dmz ocserv[25040]: main: main.c:1304: error in command from sec-mod
+Oct 24 12:57:40 dmz ocserv[25040]: main: termination request received; waiting for children to die
+Oct 24 12:57:40 dmz ocserv[25040]: main: [REDACTED]:54330 user disconnected (rx: 0, tx: 0)
+```
+```
+2018-10-24 12:58:44 | 2474 | Disconnected
+2018-10-24 12:57:40 | 23e0 | SSL read error: Error in the pull function.; reconnecting.
+2018-10-24 12:57:40 | 23e0 | SSL negotiation with [REDACTED]
+2018-10-24 12:57:40 | 23e0 | SSL connection failure: The TLS connection was non-properly terminated.
+2018-10-24 12:57:40 | 23e0 | sleep 10s, remaining timeout 60s
+2018-10-24 12:57:51 | 23e0 | Failed to reconnect to host [REDACTED]: No connection could be made because the target machine actively refused it.
+2018-10-24 12:57:51 | 23e0 | sleep 20s, remaining timeout 50s
+2018-10-24 12:58:12 | 23e0 | Failed to reconnect to host [REDACTED]: No connection could be made because the target machine actively refused it.
+2018-10-24 12:58:12 | 23e0 | sleep 30s, remaining timeout 30s
+2018-10-24 12:58:43 | 23e0 | Failed to reconnect to host [REDACTED]: No connection could be made because the target machine actively refused it.
+2018-10-24 12:58:43 | 23e0 | Reconnect failed
+```
+
+---
+
+2018-10-25
+
+* Yesterday eventually did apply changes to make service restart automatically
+  after one second. 
+* Still observing disconnect errors
+    * memory allocation errors?
+
+
+```
+Oct 25 12:48:13 dmz ocserv[1002]: main[lar]: 134.121.20.237:60034 user disconnected (rx: 0, tx: 0)
+Oct 25 12:48:13 dmz ocserv[1066]: sec-mod: temporarily closing session for lar (session: K+uY5)
+Oct 25 12:48:13 dmz ocserv[1002]: *** Error in `ocserv-secm': malloc(): smallbin double linked list corrupted: 0x0230ae90 ***
+Oct 25 12:48:13 dmz ocserv[16352]: common.c:377: recvmsg returned zero
+Oct 25 12:48:13 dmz ocserv[16352]: error receiving sec-mod reply: Invalid argument
+Oct 25 12:48:13 dmz ocserv[1002]: main: 134.121.20.237:60092 user disconnected (rx: 0, tx: 0)
+Oct 25 12:48:13 dmz ocserv[1002]: main: main-sec-mod-cmd.c:90: command socket for sec-mod closed
+Oct 25 12:48:13 dmz ocserv[1002]: main: main.c:1304: error in command from sec-mod
+Oct 25 12:48:13 dmz ocserv[1002]: main: termination request received; waiting for children to die
+Oct 25 12:48:15 dmz systemd[1]: ocserv.service: Service hold-off time over, scheduling restart.
+Oct 25 12:48:15 dmz systemd[1]: Stopped OpenConnect SSL VPN server.
+-- Subject: Unit ocserv.service has finished shutting down
+-- Defined-By: systemd
+-- Support: http://lists.freedesktop.org/mailman/listinfo/systemd-devel
+--
+-- Unit ocserv.service has finished shutting down.
+Oct 25 12:48:15 dmz systemd[1]: Started OpenConnect SSL VPN server.
+```
+```
+Oct 25 14:40:55 dmz ocserv[31453]: worker[lar]: 98.146.205.24 sent periodic stats (in: 5454, out: 11378) to sec-mod
+Oct 25 14:40:55 dmz ocserv[16356]: main[lar]: 98.146.205.24:54408 user disconnected (rx: 0, tx: 0)
+Oct 25 14:40:55 dmz ocserv[16357]: sec-mod: temporarily closing session for lar (session: v2vsf)
+Oct 25 14:40:55 dmz ocserv[16356]: *** Error in `ocserv-secm': malloc(): smallbin double linked list corrupted: 0x0160ee90 ***
+Oct 25 14:40:55 dmz ocserv[16356]: main: main-sec-mod-cmd.c:90: command socket for sec-mod closed
+Oct 25 14:40:55 dmz ocserv[16356]: main: main.c:1304: error in command from sec-mod
+Oct 25 14:40:55 dmz ocserv[16356]: main: termination request received; waiting for children to die
+Oct 25 14:40:55 dmz ocserv[16356]: main: 98.146.205.24:54414 user disconnected (rx: 0, tx: 0)
+Oct 25 14:40:57 dmz systemd[1]: ocserv.service: Service hold-off time over, scheduling restart.
+Oct 25 14:40:57 dmz systemd[1]: Stopped OpenConnect SSL VPN server.
+-- Subject: Unit ocserv.service has finished shutting down
+-- Defined-By: systemd
+-- Support: http://lists.freedesktop.org/mailman/listinfo/systemd-devel
+--
+-- Unit ocserv.service has finished shutting down.
+Oct 25 14:40:57 dmz systemd[1]: Started OpenConnect SSL VPN server.
+```
+
+Time to move on:
+```
+sudo do-release-upgrade
+```
+
+
 
 
 

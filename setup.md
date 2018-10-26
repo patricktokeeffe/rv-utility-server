@@ -579,6 +579,9 @@ References:
 
 > ***TODO***
 
+* hints for ufw?  
+  https://gist.github.com/luginbash/52e745ab46cdf46b9061
+
 
 
 ### Network UPS Tools (*nut*)
