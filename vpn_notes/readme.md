@@ -805,7 +805,161 @@ Time to move on:
 sudo do-release-upgrade
 ```
 
+----
 
+2018-10-26
+
+Upgrading to 18.04 LTS has introduced `ocserv` version 0.11.9. Observe new 
+errors but no `malloc()` issues:
+
+```
+Oct 26 11:59:23 dmz ocserv[32521]: worker[lar]: 134.121.20.237 Link MTU is 1406 bytes
+Oct 26 12:00:43 dmz ocserv[32521]: worker[lar]: 134.121.20.237 sent periodic stats (in: 327, out: 998) to sec-mod
+Oct 26 12:00:43 dmz systemd[1]: Stopping OpenConnect SSL VPN server...
+-- Subject: Unit ocserv.service has begun shutting down
+-- Defined-By: systemd
+-- Support: http://www.ubuntu.com/support
+--
+-- Unit ocserv.service has begun shutting down.
+Oct 26 12:00:43 dmz ocserv[31699]: main: main-sec-mod-cmd.c:106: command socket for sec-mod closed
+Oct 26 12:00:43 dmz ocserv[31699]: main: main.c:1200: error in command from sec-mod
+Oct 26 12:00:43 dmz ocserv[31699]: main: termination request received; waiting for children to die
+Oct 26 12:00:43 dmz ocserv[31699]: main[lar]: 134.121.20.237:57032 user disconnected (reason: unspecified, rx: 0, tx: 0)
+Oct 26 12:00:44 dmz systemd[1]: Stopped OpenConnect SSL VPN server.
+```
+
+```
+Oct 26 11:40:55 dmz systemd[1]: Started OpenConnect SSL VPN server.
+-- Subject: Unit ocserv.service has finished start-up
+-- Defined-By: systemd
+-- Support: http://www.ubuntu.com/support
+--
+-- Unit ocserv.service has finished starting up.
+--
+-- The start-up result is RESULT.
+Oct 26 11:40:55 dmz ocserv[29972]: note: setting 'pam' as primary authentication method
+Oct 26 11:40:55 dmz ocserv[29972]: note: setting 'file' as supplemental config option
+Oct 26 11:40:55 dmz ocserv[29972]: listening (TCP) on 0.0.0.0:443...
+Oct 26 11:40:55 dmz ocserv[29972]: listening (TCP) on [::]:443...
+Oct 26 11:40:55 dmz ocserv[29972]: main: initialized ocserv 0.11.9
+Oct 26 11:40:55 dmz ocserv[29977]: sec-mod: reading supplemental config from files
+Oct 26 11:40:55 dmz ocserv[29977]: sec-mod: sec-mod initialized (socket: /var/run/ocserv-socket.29972)
+Oct 26 11:40:56 dmz ocserv[29972]: main: 134.121.20.237:54646 user disconnected (reason: unspecified, rx: 0, tx: 0)
+Oct 26 11:41:07 dmz ocserv[29977]: sec-mod: using 'pam' authentication to authenticate user (session: P6juxZ)
+Oct 26 11:41:07 dmz ocserv[29977]: PAM-auth conv: echo-off, msg: 'Password: '
+Oct 26 11:41:08 dmz ocserv[29977]: sec-mod: initiating session for user 'lar' (session: P6juxZ)
+Oct 26 11:41:08 dmz ocserv[29972]: main[lar]: 134.121.20.237:54665 new user session
+Oct 26 11:41:11 dmz ocserv[29972]: main: pinged 192.168.3.249 and is not in use
+Oct 26 11:41:11 dmz ocserv[29972]: main[lar]: 134.121.20.237:54665 user logged in
+Oct 26 11:41:11 dmz ocserv[30004]: worker[lar]: 134.121.20.237 suggesting DPD of 90 secs
+Oct 26 11:41:11 dmz ocserv[30004]: worker[lar]: 134.121.20.237 configured link MTU is 1500
+Oct 26 11:41:11 dmz ocserv[30004]: worker[lar]: 134.121.20.237 peer's link MTU is 1406
+Oct 26 11:41:11 dmz ocserv[30004]: worker[lar]: 134.121.20.237 sending IPv4 192.168.3.249
+Oct 26 11:41:11 dmz ocserv[30004]: worker[lar]: 134.121.20.237 adding DNS 192.168.3.1
+Oct 26 11:41:11 dmz ocserv[30004]: worker[lar]: 134.121.20.237 Include route 192.168.3.0/255.255.255.0
+Oct 26 11:41:11 dmz ocserv[30004]: worker[lar]: 134.121.20.237 Link MTU is 1406 bytes
+Oct 26 11:41:16 dmz ocserv[29972]: main: 134.121.20.237:54679 user disconnected (reason: unspecified, rx: 0, tx: 0)
+Oct 26 11:45:07 dmz ocserv[30004]: worker[lar]: 134.121.20.237 sent periodic stats (in: 255415, out: 493173) to sec-mod
+Oct 26 11:45:07 dmz ocserv[29977]: sec-mod: temporarily closing session for lar (session: P6juxZ)
+Oct 26 11:45:07 dmz ocserv[29972]: main[lar]: 134.121.20.237:54665 user disconnected (reason: unspecified, rx: 255415, tx: 493173)
+Oct 26 11:45:08 dmz ocserv[29977]: sec-mod: initiating session for user 'lar' (session: P6juxZ)
+Oct 26 11:45:08 dmz ocserv[29972]: main[lar]: 134.121.20.237:55343 new user session
+Oct 26 11:45:11 dmz ocserv[29972]: main: pinged 192.168.3.204 and is not in use
+Oct 26 11:45:11 dmz ocserv[29972]: main[lar]: 134.121.20.237:55343 user logged in
+Oct 26 11:45:11 dmz ocserv[30385]: worker[lar]: 134.121.20.237 suggesting DPD of 90 secs
+Oct 26 11:45:11 dmz ocserv[30385]: worker[lar]: 134.121.20.237 configured link MTU is 1500
+Oct 26 11:45:11 dmz ocserv[30385]: worker[lar]: 134.121.20.237 peer's link MTU is 1406
+Oct 26 11:45:11 dmz ocserv[30385]: worker[lar]: 134.121.20.237 sending IPv4 192.168.3.204
+Oct 26 11:45:11 dmz ocserv[30385]: worker[lar]: 134.121.20.237 adding DNS 192.168.3.1
+Oct 26 11:45:11 dmz ocserv[30385]: worker[lar]: 134.121.20.237 Include route 192.168.3.0/255.255.255.0
+Oct 26 11:45:11 dmz ocserv[30385]: worker[lar]: 134.121.20.237 Link MTU is 1406 bytes
+Oct 26 11:45:11 dmz ocserv[30385]: worker[lar]: 134.121.20.237 worker-vpn.c:1266: GnuTLS error (at worker-vpn.c:1266): The TLS conne
+ction was non-properly terminated.
+Oct 26 11:45:11 dmz ocserv[30385]: worker[lar]: 134.121.20.237 sent periodic stats (in: 0, out: 200) to sec-mod
+Oct 26 11:45:11 dmz ocserv[29977]: sec-mod: temporarily closing session for lar (session: P6juxZ)
+Oct 26 11:45:11 dmz ocserv[29972]: main[lar]: 134.121.20.237:55343 user disconnected (reason: unspecified error, rx: 0, tx: 200)
+Oct 26 11:45:22 dmz ocserv[29972]: main[lar]: 134.121.20.237:55364 new user session
+Oct 26 11:45:22 dmz ocserv[29977]: sec-mod: initiating session for user 'lar' (session: P6juxZ)
+Oct 26 11:45:25 dmz ocserv[29972]: main: pinged 192.168.3.32 and is not in use
+Oct 26 11:45:25 dmz ocserv[29972]: main[lar]: 134.121.20.237:55364 user logged in
+Oct 26 11:45:25 dmz ocserv[30601]: worker[lar]: 134.121.20.237 suggesting DPD of 90 secs
+Oct 26 11:45:25 dmz ocserv[30601]: worker[lar]: 134.121.20.237 configured link MTU is 1500
+Oct 26 11:45:25 dmz ocserv[30601]: worker[lar]: 134.121.20.237 peer's link MTU is 1406
+Oct 26 11:45:25 dmz ocserv[30601]: worker[lar]: 134.121.20.237 sending IPv4 192.168.3.32
+Oct 26 11:45:25 dmz ocserv[30601]: worker[lar]: 134.121.20.237 adding DNS 192.168.3.1
+Oct 26 11:45:25 dmz ocserv[30601]: worker[lar]: 134.121.20.237 Include route 192.168.3.0/255.255.255.0
+Oct 26 11:45:25 dmz ocserv[30601]: worker[lar]: 134.121.20.237 Link MTU is 1406 bytes
+Oct 26 11:45:25 dmz ocserv[30601]: worker[lar]: 134.121.20.237 worker-vpn.c:1266: GnuTLS error (at worker-vpn.c:1266): The TLS conne
+ction was non-properly terminated.
+Oct 26 11:45:25 dmz ocserv[30601]: worker[lar]: 134.121.20.237 sent periodic stats (in: 0, out: 276) to sec-mod
+Oct 26 11:45:25 dmz ocserv[29977]: sec-mod: temporarily closing session for lar (session: P6juxZ)
+Oct 26 11:45:25 dmz ocserv[29972]: main[lar]: 134.121.20.237:55364 user disconnected (reason: unspecified error, rx: 0, tx: 276)
+Oct 26 11:45:45 dmz ocserv[29977]: sec-mod: initiating session for user 'lar' (session: P6juxZ)
+Oct 26 11:45:45 dmz ocserv[29972]: main[lar]: 134.121.20.237:55409 new user session
+Oct 26 11:45:48 dmz ocserv[29972]: main: pinged 192.168.3.178 and is not in use
+Oct 26 11:45:48 dmz ocserv[29972]: main[lar]: 134.121.20.237:55409 user logged in
+Oct 26 11:45:48 dmz ocserv[30840]: worker[lar]: 134.121.20.237 suggesting DPD of 90 secs
+Oct 26 11:45:48 dmz ocserv[30840]: worker[lar]: 134.121.20.237 configured link MTU is 1500
+Oct 26 11:45:48 dmz ocserv[30840]: worker[lar]: 134.121.20.237 peer's link MTU is 1406
+Oct 26 11:45:48 dmz ocserv[30840]: worker[lar]: 134.121.20.237 sending IPv4 192.168.3.178
+Oct 26 11:45:48 dmz ocserv[30840]: worker[lar]: 134.121.20.237 adding DNS 192.168.3.1
+Oct 26 11:45:48 dmz ocserv[30840]: worker[lar]: 134.121.20.237 Include route 192.168.3.0/255.255.255.0
+Oct 26 11:45:48 dmz ocserv[30840]: worker[lar]: 134.121.20.237 Link MTU is 1406 bytes
+Oct 26 11:45:48 dmz ocserv[30840]: worker[lar]: 134.121.20.237 worker-vpn.c:1266: GnuTLS error (at worker-vpn.c:1266): The TLS conne
+ction was non-properly terminated.
+Oct 26 11:45:48 dmz ocserv[30840]: worker[lar]: 134.121.20.237 sent periodic stats (in: 0, out: 200) to sec-mod
+Oct 26 11:45:48 dmz ocserv[29977]: sec-mod: temporarily closing session for lar (session: P6juxZ)
+Oct 26 11:45:48 dmz ocserv[29972]: main[lar]: 134.121.20.237:55409 user disconnected (reason: unspecified error, rx: 0, tx: 200)
+Oct 26 11:46:19 dmz ocserv[29972]: main[lar]: 134.121.20.237:55473 new user session
+Oct 26 11:46:19 dmz ocserv[29977]: sec-mod: initiating session for user 'lar' (session: P6juxZ)
+Oct 26 11:46:22 dmz ocserv[29972]: main: pinged 192.168.3.149 and is not in use
+Oct 26 11:46:22 dmz ocserv[31050]: worker[lar]: 134.121.20.237 suggesting DPD of 90 secs
+Oct 26 11:46:22 dmz ocserv[31050]: worker[lar]: 134.121.20.237 configured link MTU is 1500
+Oct 26 11:46:22 dmz ocserv[31050]: worker[lar]: 134.121.20.237 peer's link MTU is 1406
+Oct 26 11:46:22 dmz ocserv[31050]: worker[lar]: 134.121.20.237 sending IPv4 192.168.3.149
+Oct 26 11:46:22 dmz ocserv[31050]: worker[lar]: 134.121.20.237 adding DNS 192.168.3.1
+Oct 26 11:46:22 dmz ocserv[31050]: worker[lar]: 134.121.20.237 Include route 192.168.3.0/255.255.255.0
+Oct 26 11:46:22 dmz ocserv[31050]: worker[lar]: 134.121.20.237 Link MTU is 1406 bytes
+Oct 26 11:46:22 dmz ocserv[29972]: main[lar]: 134.121.20.237:55473 user logged in
+Oct 26 11:46:22 dmz ocserv[31050]: worker[lar]: 134.121.20.237 worker-vpn.c:1266: GnuTLS error (at worker-vpn.c:1266): The TLS conne
+ction was non-properly terminated.
+Oct 26 11:46:22 dmz ocserv[31050]: worker[lar]: 134.121.20.237 sent periodic stats (in: 0, out: 200) to sec-mod
+Oct 26 11:46:22 dmz ocserv[29977]: sec-mod: temporarily closing session for lar (session: P6juxZ)
+```
+
+```
+Oct 26 11:04:08 dmz ocserv[25223]: worker[lar]: 134.121.20.237 Include route 192.168.3.0/255.255.255.0
+Oct 26 11:04:08 dmz ocserv[25223]: worker[lar]: 134.121.20.237 Link MTU is 1406 bytes
+Oct 26 11:08:08 dmz ocserv[25223]: worker[lar]: 134.121.20.237 sent periodic stats (in: 810, out: 592) to sec-mod
+Oct 26 11:08:08 dmz ocserv[22435]: sec-mod: temporarily closing session for lar (session: wVjyAI)
+Oct 26 11:08:08 dmz ocserv[22431]: main[lar]: 134.121.20.237:51385 user disconnected (reason: unspecified, rx: 810, tx: 592)
+Oct 26 11:08:08 dmz ocserv[22435]: sec-mod: initiating session for user 'lar' (session: wVjyAI)
+Oct 26 11:08:08 dmz ocserv[22431]: main[lar]: 134.121.20.237:51716 new user session
+Oct 26 11:08:08 dmz ocserv[22431]: main[lar]: 134.121.20.237:51716 user logged in
+Oct 26 11:08:08 dmz ocserv[25636]: worker[lar]: 134.121.20.237 suggesting DPD of 90 secs
+Oct 26 11:08:08 dmz ocserv[25636]: worker[lar]: 134.121.20.237 configured link MTU is 1500
+Oct 26 11:08:08 dmz ocserv[25636]: worker[lar]: 134.121.20.237 peer's link MTU is 1406
+Oct 26 11:08:08 dmz ocserv[25636]: worker[lar]: 134.121.20.237 sending IPv4 192.168.3.205
+Oct 26 11:08:08 dmz ocserv[25636]: worker[lar]: 134.121.20.237 adding DNS 192.168.3.1
+Oct 26 11:08:08 dmz ocserv[25636]: worker[lar]: 134.121.20.237 Include route 192.168.3.0/255.255.255.0
+Oct 26 11:08:08 dmz ocserv[25636]: worker[lar]: 134.121.20.237 Link MTU is 1406 bytes
+Oct 26 11:11:45 dmz ocserv[25636]: worker[lar]: 134.121.20.237 worker-vpn.c:1057: have not received TCP DPD for long (207 secs)
+Oct 26 11:12:08 dmz ocserv[25636]: worker[lar]: 134.121.20.237 sent periodic stats (in: 135, out: 592) to sec-mod
+Oct 26 11:12:08 dmz ocserv[22435]: sec-mod: temporarily closing session for lar (session: wVjyAI)
+Oct 26 11:12:08 dmz ocserv[22431]: main[lar]: 134.121.20.237:51716 user disconnected (reason: unspecified, rx: 135, tx: 592)
+Oct 26 11:12:09 dmz ocserv[22435]: sec-mod: initiating session for user 'lar' (session: wVjyAI)
+Oct 26 11:12:09 dmz ocserv[22431]: main[lar]: 134.121.20.237:52063 new user session
+Oct 26 11:12:09 dmz ocserv[22431]: main[lar]: 134.121.20.237:52063 user logged in
+Oct 26 11:12:09 dmz ocserv[26043]: worker[lar]: 134.121.20.237 suggesting DPD of 90 secs
+Oct 26 11:12:09 dmz ocserv[26043]: worker[lar]: 134.121.20.237 configured link MTU is 1500
+Oct 26 11:12:09 dmz ocserv[26043]: worker[lar]: 134.121.20.237 peer's link MTU is 1406
+Oct 26 11:12:09 dmz ocserv[26043]: worker[lar]: 134.121.20.237 sending IPv4 192.168.3.205
+Oct 26 11:12:09 dmz ocserv[26043]: worker[lar]: 134.121.20.237 adding DNS 192.168.3.1
+Oct 26 11:12:09 dmz ocserv[26043]: worker[lar]: 134.121.20.237 Include route 192.168.3.0/255.255.255.0
+Oct 26 11:12:09 dmz ocserv[26043]: worker[lar]: 134.121.20.237 Link MTU is 1406 bytes
+Oct 26 11:16:08 dmz ocserv[26043]: worker[lar]: 134.121.20.237 sent periodic stats (in: 1146, out: 877) to sec-mod
+Oct 26 11:16:08 dmz ocserv[22435]: sec-mod: temporarily closing session for lar (session: wVjyAI)
+```
 
 
 
