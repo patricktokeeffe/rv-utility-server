@@ -495,7 +495,7 @@ sudo nano /etc/nut/ups.conf
 +[ups]
 +        driver = usbhid-ups
 +        port = auto
-+        desc = "Communications UPS"
++        desc = "Data system UPS"
 ```
 
 Expose the service to the local area network:
@@ -580,15 +580,81 @@ sudo nano /etc/rpimonitor/template/cpu.conf
 +web.status.1.content.1.line.4=InsertHTML("/addons/top3/top3.html")
 ```
 
-Further to-do:
-* services to add [monitoring badges](https://xavierberger.github.io/RPi-Monitor-docs/27_configuration_templates.html) for:
-    * NUT
-    * rpimonitor
-    * node-red?
-    * VNC
-    * VPN
-    * SSH
-* record statistics for VPN traffic? somehow?
+Enable services status badges on the homepage:
+```
+sudo nano /etc/rpimonitor/data.conf
+```
+```diff
+ ...
+ include=/etc/rpimonitor/template/version.conf
+ include=/etc/rpimonitor/template/uptime.conf
++include=/etc/rpimonitor/template/services.conf
+ include=/etc/rpimonitor/template/cpu.conf
+ include=/etc/rpimonitor/template/temperature.conf
+ include=/etc/rpimonitor/template/memory.conf
+ include=/etc/rpimonitor/template/swap.conf
+ include=/etc/rpimonitor/template/sdcard.conf
+ include=/etc/rpimonitor/template/network.conf
+```
+```
+sudo nano /etc/rpimonitor/template/services.conf
+```
+```diff
+ ...
+-dynamic.3.name=http
+-dynamic.3.source=netstat -nlt
+-dynamic.3.regexp=tcp .*:(80).*LISTEN
+-
+-dynamic.4.name=https
+-dynamic.4.source=netstat -nlt
+-dynamic.4.regexp=tcp .*:(443).*LISTEN
+-
+-dynamic.5.name=mysql
+-dynamic.5.source=netstat -nlt
+-dynamic.5.regexp=tcp .*:(3306).*LISTEN
++#dynamic.3.name=http
++#dynamic.3.source=netstat -nlt
++#dynamic.3.regexp=tcp .*:(80).*LISTEN
++
++#dynamic.4.name=https
++#dynamic.4.source=netstat -nlt
++#dynamic.4.regexp=tcp .*:(443).*LISTEN
++
++#dynamic.5.name=mysql
++#dynamic.5.source=netstat -nlt
++#dynamic.5.regexp=tcp .*:(3306).*LISTEN
++
++dynamic.6.name=vpn
++dynamic.6.source=netstat -nlt
++dynamic.6.regexp=tcp .*:(443).*LISTEN
++
++dynamic.7.name=vnc
++dynamic.7.source=netstat -nlt
++dynamic.7.regexp=tcp .*:(5901).*LISTEN
++
++dynamic.8.name=vncx11
++dynamic.8.source=netstat -nlt
++dynamic.8.regexp=tcp .*:(6001).*LISTEN
++
++dynamic.9.name=smtp
++dynamic.9.source=netstat -nlt
++dynamic.9.regexp=tcp .*:(25).*LISTEN
++
++dynamic.10.name=nut
++dynamic.10.source=netstat -nlt
++dynamic.10.regexp=tcp .*:(3493).*LISTEN
++
++dynamic.11.name=ftp
++dynamic.11.source=netstat -nlt
++dynamic.11.regexp=tcp .*:(21).*LISTEN
+
+ web.status.1.content.1.name=Servers
+ web.status.1.content.1.icon=daemons.png
+-web.status.1.content.1.line.1="<b>ssh</b> : "+Label(data.ssh,"==22","OK","success")+Label(data.ssh,"!=22","KO","danger")+" <b>rpimonitor</b> : "+Label(data.rpimonitor,"==8888","OK","success")+Label(data.rpimonitor,"!=8888","KO","danger")+" <b>nginx http</b> : "+Label(data.http,"==80","OK","success")+Label(data.http,"!=80","KO","danger")+" <b>nginx https</b> : "+Label(data.https,"==443","OK","success")+Label(data.https,"!=443","KO","danger")+" <b>mysql</b> : "+Label(data.mysql,"==3306","OK","success")+Label(data.mysql,"!=3306","KO","danger")
++#web.status.1.content.1.line.1="<b>ssh</b> : "+Label(data.ssh,"==22","OK","success")+Label(data.ssh,"!=22","KO","danger")+" <b>rpimonitor</b> : "+Label(data.rpimonitor,"==8888","OK","success")+Label(data.rpimonitor,"!=8888","KO","danger")+" <b>nginx http</b> : "+Label(data.http,"==80","OK","success")+Label(data.http,"!=80","KO","danger")+" <b>nginx https</b> : "+Label(data.https,"==443","OK","success")+Label(data.https,"!=443","KO","danger")+" <b>mysql</b> : "+Label(data.mysql,"==3306","OK","success")+Label(data.mysql,"!=3306","KO","danger")
++web.status.1.content.1.line.1="<b>ssh</b> "+Label(data.ssh,"==22","OK","success")+Label(data.ssh,"!=22","KO","danger")+" | <b>rpimonitor</b> "+Label(data.rpimonitor,"==8888","OK","success")+Label(data.rpimonitor,"!=8888","KO","danger")+" | <b>ocserv vpn</b> "+Label(data.vpn,"==443","OK","success")+Label(data.vpn,"!=443","KO","danger")+" | <b>tightvnc vnc</b> "+Label(data.vnc,"==5901","OK","success")+Label(data.vnc,"!=5901","KO","danger")+" | <b>tightvnc x11</b> "+Label(data.vncx11,"==6001","OK","success")+Label(data.vncx11,"!=6001","KO","danger")
++web.status.1.content.1.line.2="<b>postfix smtp</b> "+Label(data.smtp,"==25","OK","success")+Label(data.smtp,"!=25","KO","danger")+" | <b>nut-server</b> "+Label(data.nut,"==3493","OK","success")+Label(data.nut,"!=3493","KO","danger")+" | <b>ftp</b> "+Label(data.ftp,"==21","OK","success")+Label(data.ftp,"!=21","KO","danger")
+```
 
 > **Performance testing notes**
 >
