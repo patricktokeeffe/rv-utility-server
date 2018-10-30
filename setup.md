@@ -128,7 +128,6 @@ in Ubuntu 16.04 LTS. To fix, re-run the package configuration:
 ```
 sudo dpkg-reconfigure popularity-contest
 ```
-
 ### Remove unnecessary packages
 
 These packages won't be useful to support the Research Van, and we don't want
@@ -709,6 +708,10 @@ reboot):
 sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 ```
 
+> 2018-10-30 IP masquerading isn't required provided we only route local
+> network traffic. If *ocserv* is configured as the default route (explicitly
+> or by not declaring any routes), then VPN users will be unable to access the
+> internet without IP masquerading enabled. 
 
 
 * notes
