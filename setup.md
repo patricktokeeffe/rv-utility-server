@@ -329,6 +329,17 @@ nano ~/.bashrc
 
 ### VNC Server (*tightvncserver*)
 
+> *FUTURE: possibly use Google Chrome Remote Desktop for screen sharing?
+> As of 2018-10-31, share feature is not available for this platform.*
+
+> *FUTURE: share HDMI desktop session by using `x11vnc` server instead?*
+> * https://raspberrypi.stackexchange.com/questions/28369/how-to-control-pi-hdmi-output-from-laptop-via-vnc?rq=1
+> * https://wiki.xdroop.com//space/Linux/x11vnc+setup
+> * https://serverfault.com/questions/27044/how-to-vnc-into-an-existing-x-session
+> * https://askubuntu.com/questions/107239/vnc-with-current-desktop
+
+> *Follow up on : https://askubuntu.com/questions/611544/mate-desktop-weird-red-icons-in-top-right-corner-how-to-remove-fix?rq=1*
+
 Install *tightvncserver*:
 ```
 sudo apt install tightvncserver
