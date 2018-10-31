@@ -679,6 +679,7 @@ sudo nano /etc/ocserv/ocserv.conf
  #route = fef4:db8:1000:1001::/64
  #route = default
 +route = 192.168.3.0/24
++route = 192.168.13.31/32
 
  # Subsets of the routes above that will not be routed by
  # the server.
