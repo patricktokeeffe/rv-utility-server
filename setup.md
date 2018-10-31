@@ -526,6 +526,16 @@ sudo nano /etc/nut/nut.conf
 sudo systemctl restart nut-server.service
 ```
 
+#### Graphical UPS Monitor (*NUT-Monitor*)
+
+It is recommended to have *NUT-Monitor* installed so desktop users can easily
+review the UPS status.
+```
+sudo apt install nut-monitor -y
+```
+
+Launch the program from the *Applications > Internet* menu.
+
 
 ### System Monitoring Service (*RPi-Monitor*)
 
