@@ -261,6 +261,9 @@ Unattended-Upgrade::Allowed-Origins {
 };
 ```
 
+> 2018-10-30 enabled `-updates` as well as `-security` packages, enabled
+> option for automatic `autoremove`, and enabled automatic reboots @ 2AM
+
 ...and that automatic upgrades are enabled:
 ```
 sudo nano /etc/apt/apt.conf.d/20auto-upgrades
