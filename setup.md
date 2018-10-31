@@ -152,6 +152,61 @@ sudo apt autoremove firefox -y
 sudo apt install chromium-browser -y
 ```
 
+### Fix the *cups-filters* package
+
+By default, an error in the *cups-filters* package configuration will prevent
+the *systemd-modules-load.service* from successfully loading. To fix, remove
+kernel modules supporting the LP printer port (nonexistent on Raspberry Pi 3).
+
+Resources:
+* https://discourse.osmc.tv/t/failed-to-start-load-kernel-modules/3163/13
+* https://www.raspberrypi.org/forums/viewtopic.php?p=949249
+* https://askubuntu.com/questions/795360/kernel-load-module-error-during-boot-up/795421#795421
+
+Procedure: remove config file, update defaults, then re-install package.
+```
+sudo rm /etc/modules-load.d/cups-filters.conf
+sudo nano /etc/defaults/cups
+```
+```
+LOAD_LP_MODULE=no
+```
+```
+sudo apt install --reinstall cups-filters
+sudo reboot
+```
+
+Verify service starts okay now:
+```
+lar@dmz:~$ sudo systemctl status systemd-modules-load.service
+● systemd-modules-load.service - Load Kernel Modules
+   Loaded: loaded (/lib/systemd/system/systemd-modules-load.service; static; vendor preset: enabled)
+   Active: active (exited) since Sun 2018-01-28 07:58:19 PST; 9 months 2 days ago
+     Docs: man:systemd-modules-load.service(8)
+           man:modules-load.d(5)
+  Process: 101 ExecStart=/lib/systemd/systemd-modules-load (code=exited, status=0/SUCCESS)
+ Main PID: 101 (code=exited, status=0/SUCCESS)
+
+Jan 28 07:58:19 dmz systemd-modules-load[101]: Inserted module 'bcm2835_v4l2'
+Jan 28 07:58:19 dmz systemd-modules-load[101]: Inserted module 'i2c_dev'
+Jan 28 07:58:19 dmz systemd-modules-load[101]: Inserted module 'snd_bcm2835'
+Jan 28 07:58:19 dmz systemd[1]: Started Load Kernel Modules.
+```
+
+### Remove defunct packages
+
+The following packages are not functional, but are still included with Ubuntu
+Mate 18.04 LTS. (*Sources indicate this package will be removed in 18.10 and
+this procedure will be unnecessary [[ref1](https://launchpad.net/ubuntu/+source/ubuntu-meta),
+[ref2](https://askubuntu.com/a/1087007/227779)]*)
+
+```
+sudo apt autoremove ureadahead
+```
+
+> This will resolve issues with the `ureadahead.service` failing to load.
+
+
 ### Remove unnecessary packages
 
 These packages won't be useful to support the Research Van, and we don't want
@@ -168,56 +223,10 @@ sudo apt install network-manager-openconnect-gnome -y
 ```
 
 
+
+
+
 ### Other things to look into:
-
-#### "degraded" system status:
-```
-lar@dmz:~/ftptest$ systemctl --failed
-  UNIT                         LOAD   ACTIVE SUB    DESCRIPTION
-● systemd-modules-load.service loaded failed failed Load Kernel Modules
-● ureadahead.service           loaded failed failed Read required files in advance
-
-LOAD   = Reflects whether the unit definition was properly loaded.
-ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
-SUB    = The low-level unit activation state, values depend on unit type.
-
-2 loaded units listed. Pass --all to see loaded but inactive units, too.
-To show all installed unit files use 'systemctl list-unit-files'.
-```
-* https://superuser.com/questions/997938/how-do-i-figure-out-why-systemctl-service-systemd-modules-load-fails#1074637
-
-```
-lar@dmz:~/ftptest$ sudo systemctl status systemd-modules-load.service
-● systemd-modules-load.service - Load Kernel Modules
-   Loaded: loaded (/lib/systemd/system/systemd-modules-load.service; static; vendor preset: enabled)
-   Active: failed (Result: exit-code) since Thu 2016-02-11 08:28:01 PST; 2 years 8 months ago
-     Docs: man:systemd-modules-load.service(8)
-           man:modules-load.d(5)
- Main PID: 99 (code=exited, status=1/FAILURE)
-
-Feb 11 08:28:01 dmz systemd-modules-load[99]: Failed to find module 'lp'
-Feb 11 08:28:01 dmz systemd-modules-load[99]: Failed to find module 'ppdev'
-Feb 11 08:28:01 dmz systemd-modules-load[99]: Failed to find module 'parport_pc'
-Feb 11 08:28:01 dmz systemd-modules-load[99]: Inserted module 'bcm2835_v4l2'
-Feb 11 08:28:01 dmz systemd-modules-load[99]: Inserted module 'i2c_dev'
-Feb 11 08:28:01 dmz systemd[1]: systemd-modules-load.service: Main process exited, code=exited, status=1/FAILURE
-Feb 11 08:28:01 dmz systemd[1]: Failed to start Load Kernel Modules.
-Feb 11 08:28:01 dmz systemd[1]: systemd-modules-load.service: Unit entered failed state.
-Feb 11 08:28:01 dmz systemd[1]: systemd-modules-load.service: Failed with result 'exit-code'.
-Warning: Journal has been rotated since unit was started. Log output is incomplete or unavailable.
-lar@dmz:~/ftptest$ sudo journalctl _PID=99
--- Logs begin at Thu 2016-02-11 08:28:01 PST, end at Thu 2018-10-25 09:53:04 PDT. --
-Feb 11 08:28:01 dmz systemd-modules-load[99]: Failed to find module 'lp'
-Feb 11 08:28:01 dmz systemd-modules-load[99]: Failed to find module 'ppdev'
-Feb 11 08:28:01 dmz systemd-modules-load[99]: Failed to find module 'parport_pc'
-Feb 11 08:28:01 dmz systemd-modules-load[99]: Inserted module 'bcm2835_v4l2'
-Feb 11 08:28:01 dmz systemd-modules-load[99]: Inserted module 'i2c_dev'
-Feb 11 08:28:01 dmz systemd-modules-load[99]: Inserted module 'snd_bcm2835'
-```
-
-* https://discourse.osmc.tv/t/failed-to-start-load-kernel-modules/3163/14
-    * three missing modules are related to *cups* printing software
-
 
 #### Mate "Power Statistics" panel
 
