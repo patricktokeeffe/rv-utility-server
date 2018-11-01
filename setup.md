@@ -238,6 +238,9 @@ options are grayed-out and inaccessible:
 
 ![screenshot](2018_10_31_12_02_54_Cmder.png)
 
+Also, there are constant notifications about being "disconnected" from the wifi:
+![screenshot](2018_10_31_17_42_54_dmz_prototype_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
 Attempting to open the "Network Connections" results in error message:
 * https://askubuntu.com/questions/668411/failed-to-add-activate-connection-32-insufficient-privileges#752168
     * fixing missing policykit rule
@@ -322,10 +325,82 @@ Supporting evidence for missing policykit file
 
 ![screenshot](2018_10_31_17_04_12_dmz_prototype_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
 
+---
 
+OK, fixing missing policy kit file...
 
+Determine policykit agent IS running:
+```
+lar@dmz:~$ ps -ef | grep kit | grep agent
+lar       1973   856  0 12:52 ?        00:00:00 /usr/lib/arm-linux-gnueabihf/polkit-mate/polkit-mate-authentication-agent-1
+```
 
+And version is 1.20.0-1:
+```
+lar@dmz:~$ apt-cache policy mate-polkit
+mate-polkit:
+  Installed: 1.20.0-1
+  Candidate: 1.20.0-1
+  Version table:
+ *** 1.20.0-1 500
+        500 http://ports.ubuntu.com bionic/universe armhf Packages
+        100 /var/lib/dpkg/status
+```
 
+BUT there is no policy file:
+```
+lar@dmz:~$ sudo ls /etc/polkit-1/localauthority/ -lR
+[sudo] password for lar:
+/etc/polkit-1/localauthority/:
+total 20
+drwxr-xr-x 2 root root 4096 Nov  1 15:36 10-vendor.d
+drwxr-xr-x 2 root root 4096 Jan 17  2016 20-org.d
+drwxr-xr-x 2 root root 4096 Jan 17  2016 30-site.d
+drwxr-xr-x 2 root root 4096 Jan 17  2016 50-local.d
+drwxr-xr-x 2 root root 4096 Jan 17  2016 90-mandatory.d
+
+/etc/polkit-1/localauthority/10-vendor.d:
+total 0
+
+/etc/polkit-1/localauthority/20-org.d:
+total 0
+
+/etc/polkit-1/localauthority/30-site.d:
+total 0
+
+/etc/polkit-1/localauthority/50-local.d:
+total 0
+
+/etc/polkit-1/localauthority/90-mandatory.d:
+total 0
+```
+
+Create new file `/etc/polkit-1/localauthority/10-vendor.d/org.freedesktop.NetworkManager.pkla`
+```
+[nm-applet]
+Identity=unix-user:lar
+Action=org.freedesktop.NetworkManager.*
+ResultAny=yes
+ResultInactive=no
+ResultActive=yes
+```
+
+Then copy into `/etc/polkit-1/localauthority/50-local.d/`... OKworks again... 
+tested OK using VNC connection.
+
+BUT still has strange errors:
+- local user session is dead (no keyboard/mouse still)
+- cannot log out or shut down computer using VNC
+    * can log out from VNC, and log back in... computer is *NOT* shutting down
+
+```
+(nm-applet:18538): Gtk-WARNING **: 15:50:30.381: Can't set a parent on widget which has a parent
+Gtk-Message: 15:50:54.456: GtkDialog mapped without a transient parent. This is discouraged.
+Window manager warning: CurrentTime used to choose focus window; focus window may not be correct.
+Window manager warning: Got a request to focus the no_focus_window with a timestamp of 0.  This shouldn't happen!
+[1541107988,000,xklavier.c:xkl_engine_constructor/]     All backends failed, last result: -1
+x-session-manager[18367]: WARNING: Unable to restart system: Interactive authentication required.
+```
 
 
 
