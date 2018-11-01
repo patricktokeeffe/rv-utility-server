@@ -230,12 +230,39 @@ sudo apt install network-manager-openconnect-gnome -y
 
 #### Screensaver issue
 
-Does not wake up from screensaver due to local keyboard/mouse input..
+Somehow lost keyboard/mouse input on primary/local (HDMI) display...
+
+Had started by troubleshooting why display blanked out even though screensaver
+was disabled... looks like it's power management.
+
 * https://ubuntu-mate.community/t/mate-screensaver-stops-keyboard-from-working/16800/12
 
 ![current settings](2018_10_31_17_21_02_dmz_prototype_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
 
 ![current settings](2018_10_31_17_21_15_dmz_prototype_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+To wake up display from console (one-liner did *not* work) [[ref](https://raspberrypi.stackexchange.com/a/48285/54372)]:
+```
+export DISPLAY=:0
+xset s reset
+```
+
+
+2018-11-01 - found display is still soft-blanked (on, but black, but clearly
+has backlighting active). observe through `htop` that `mate-screensaver` has
+absurd walltime:
+
+![screenshot](2018_11_01_10_05_31_Cmder.png)
+
+Computer ignores wireless keyboard/mouse combo, wired keyboard and wired mouse.
+Switching SD card into another Raspberry Pi does not resolve issue.
+
+Opened forum post about the issue: https://ubuntu-mate.community/t/keyboard-mouse-locked-out-of-local-session/18161
+
+
+
+
+
 
 
 
