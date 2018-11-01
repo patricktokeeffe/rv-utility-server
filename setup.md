@@ -228,6 +228,17 @@ sudo apt install network-manager-openconnect-gnome -y
 
 ### Other things to look into:
 
+#### Screensaver issue
+
+Does not wake up from screensaver due to local keyboard/mouse input..
+* https://ubuntu-mate.community/t/mate-screensaver-stops-keyboard-from-working/16800/12
+
+![current settings](2018_10_31_17_21_02_dmz_prototype_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+![current settings](2018_10_31_17_21_15_dmz_prototype_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+
+
 #### Mate "Power Statistics" panel
 
 * observed on this panel: `cannot enable timerstats`
