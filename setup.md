@@ -228,6 +228,107 @@ sudo apt install network-manager-openconnect-gnome -y
 
 ### Other things to look into:
 
+#### Cannot control wi-fi issue
+
+Out of the box, cannot connect to wifi networks and cannot modify network 
+setting using graphical software. The "Enable Networking" and "Enable Wi-Fi"
+options are grayed-out and inaccessible:
+> * https://askubuntu.com/questions/668411/failed-to-add-activate-connection-32-insufficient-privileges#752168
+> * https://ubuntuforums.org/showthread.php?t=2198703
+
+![screenshot](2018_10_31_12_02_54_Cmder.png)
+
+Attempting to open the "Network Connections" results in error message:
+* https://askubuntu.com/questions/668411/failed-to-add-activate-connection-32-insufficient-privileges#752168
+    * fixing missing policykit rule
+* https://askubuntu.com/questions/856007/failed-to-add-activate-connection
+    * not a real answer
+
+![screenshot](2018_10_31_14_05_08_dmz_prototype_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+Wi-Fi is there!:
+```
+lar@dmz:~$ sudo iwconfig
+lo        no wireless extensions.
+
+wlan0     IEEE 802.11  ESSID:off/any
+          Mode:Managed  Access Point: Not-Associated   Tx-Power=31 dBm
+          Retry short limit:7   RTS thr:off   Fragment thr:off
+          Encryption key:off
+          Power Management:on
+
+enxb827eb6e25b9  no wireless extensions.
+```
+```
+lar@dmz:~$ sudo rfkill list all
+0: phy0: Wireless LAN
+        Soft blocked: no
+        Hard blocked: no
+1: hci0: Bluetooth
+        Soft blocked: no
+        Hard blocked: no
+```
+```
+lar@dmz:~$ sudo lshw -C network
+  *-network:0
+       description: Wireless interface
+       physical id: 2
+       logical name: wlan0
+       serial: b8:27:eb:3b:70:ec
+       capabilities: ethernet physical wireless
+       configuration: broadcast=yes driver=brcmfmac driverversion=7.45.41.26 firmware=01-4527cfab multicast=yes wireless=IEEE 802.11
+  *-network:1
+       description: Ethernet interface
+       physical id: 3
+       logical name: enxb827eb6e25b9
+       serial: b8:27:eb:6e:25:b9
+       size: 100Mbit/s
+       capacity: 100Mbit/s
+       capabilities: ethernet physical tp mii 10bt 10bt-fd 100bt 100bt-fd autonegotiation
+       configuration: autonegotiation=on broadcast=yes driver=smsc95xx driverversion=22-Aug-2005 duplex=full firmware=smsc95xx USB 2.0 Ethernet ip=192.168.3.2 link=yes multicast=yes port=MII speed=100Mbit/s
+```
+```
+lar@dmz:~$ sudo ifconfig wlan0
+wlan0: flags=4099<UP,BROADCAST,MULTICAST>  mtu 1500
+        ether b8:27:eb:3b:70:ec  txqueuelen 1000  (Ethernet)
+        RX packets 0  bytes 0 (0.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 0  bytes 0 (0.0 B)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+```
+
+Verified that `/etc/NetworkManager/NetworkManager.conf` already contains flag
+to fix MAC address randomization:
+> * https://askubuntu.com/questions/904844/cant-connect-to-wifi-on-ubuntu-17-04
+> * https://ubuntu-mate.community/t/wifi-issue-in-17-04/12622/15?u=steven
+```
+[main]
+plugins=ifupdown,keyfile
+
+[ifupdown]
+managed=false
+
+[device]
+wifi.scan-rand-mac-address=no
+```
+
+Per 16.04 release notes, try rebooting to "fix" wifi
+(https://bugs.launchpad.net/ubuntu/+source/network-manager/+bug/1572956)...
+*DOES NOT HELP*
+
+Supporting evidence for missing policykit file
+
+![screenshot](2018_10_31_16_57_15_dmz_prototype_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+![screenshot](2018_10_31_17_04_12_dmz_prototype_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+
+
+
+
+
+
+
 #### Mate "Power Statistics" panel
 
 * observed on this panel: `cannot enable timerstats`
