@@ -403,6 +403,140 @@ x-session-manager[18367]: WARNING: Unable to restart system: Interactive authent
 ```
 
 
+This is still completely fucked. Booted out of dmz#3 and returned to dmz#1...
+Works perfectly!:
+* keyboard/mouse local display works perfectly fine
+* can enable/disable wifi using network manager applet
+* can log out! and back in!
+```
+lar@dmz:~$ uname -a
+Linux dmz 4.14.76-v7+ #1150 SMP Mon Oct 15 15:19:23 BST 2018 armv7l armv7l armv7l GNU/Linux
+```
+```
+lar@dmz:~$ lsb_release -a
+No LSB modules are available.
+Distributor ID: Ubuntu
+Description:    Ubuntu 16.04.5 LTS
+Release:        16.04
+Codename:       xenial
+```
+```
+lar@dmz:~$ apt-cache policy mate-polkit
+mate-polkit:
+  Installed: 1.16.0-1~xenial3.1
+  Candidate: 1.16.0-1~xenial3.1
+  Version table:
+ *** 1.16.0-1~xenial3.1 500
+        500 http://ppa.launchpad.net/ubuntu-mate-dev/xenial-mate/ubuntu xenial/main armhf Packages
+        100 /var/lib/dpkg/status
+     1.12.0-3 500
+        500 http://ports.ubuntu.com xenial/universe armhf Packages
+        500 http://ports.ubuntu.com/ubuntu-ports xenial/universe armhf Packages
+```
+```
+lar@dmz:~$ sudo ls /etc/polkit-1/localauthority/ -lR
+[sudo] password for lar:
+/etc/polkit-1/localauthority/:
+total 20
+drwxr-xr-x 2 root root 4096 Jan 17  2016 10-vendor.d
+drwxr-xr-x 2 root root 4096 Jan 17  2016 20-org.d
+drwxr-xr-x 2 root root 4096 Jan 17  2016 30-site.d
+drwxr-xr-x 2 root root 4096 Jan 17  2016 50-local.d
+drwxr-xr-x 2 root root 4096 Jan 17  2016 90-mandatory.d
+
+/etc/polkit-1/localauthority/10-vendor.d:
+total 0
+
+/etc/polkit-1/localauthority/20-org.d:
+total 0
+
+/etc/polkit-1/localauthority/30-site.d:
+total 0
+
+/etc/polkit-1/localauthority/50-local.d:
+total 0
+
+/etc/polkit-1/localauthority/90-mandatory.d:
+total 0
+```
+```
+lar@dmz:~$ apt-cache policy mate-desktop
+mate-desktop:
+  Installed: 1.16.2-1~xenial1.0
+  Candidate: 1.16.2-1~xenial1.0
+  Version table:
+ *** 1.16.2-1~xenial1.0 500
+        500 http://ppa.launchpad.net/ubuntu-mate-dev/xenial-mate/ubuntu xenial/main armhf Packages
+        100 /var/lib/dpkg/status
+     1.12.1-1 500
+        500 http://ports.ubuntu.com xenial/universe armhf Packages
+        500 http://ports.ubuntu.com/ubuntu-ports xenial/universe armhf Packages
+```
+
+OKAY now going from dmz#1 to dmz#2...
+* Does not boot into GUI... logged in OK... issued `startx`... OK!
+* Local desktop session works OK... it's *really* slow though
+* Observe very similar problems to dmz#3:
+    * notification area is missing all icons except volume
+    * windows are opened in background (eg control center windows get opened
+      underneath control center, must raise by selecting window)
+* Except:
+    * *can* edit network connections
+    * *and* it's using a different IP address for some fucking reason
+        * should have not changed since same MAC should get same IP within this building
+
+```
+lar@dmz:~$ uname -a
+Linux dmz 4.14.73-v7+ #1148 SMP Mon Oct 1 16:57:50 BST 2018 armv7l armv7l armv7l GNU/Linux
+```
+```
+lar@dmz:~$ lsb_release -a
+No LSB modules are available.
+Distributor ID: Ubuntu
+Description:    Ubuntu 18.04.1 LTS
+Release:        18.04
+Codename:       bionic
+```
+```
+lar@dmz:~$ apt-cache policy mate-polkit
+mate-polkit:
+  Installed: 1.20.0-1
+  Candidate: 1.20.0-1
+  Version table:
+ *** 1.20.0-1 500
+        500 http://ports.ubuntu.com bionic/universe armhf Packages
+        100 /var/lib/dpkg/status
+```
+```
+/etc/polkit-1/localauthority/:
+total 20
+drwxr-xr-x 2 root root 4096 Jan 17  2016 10-vendor.d
+drwxr-xr-x 2 root root 4096 Jan 17  2016 20-org.d
+drwxr-xr-x 2 root root 4096 Jan 17  2016 30-site.d
+drwxr-xr-x 2 root root 4096 Jan 17  2016 50-local.d
+drwxr-xr-x 2 root root 4096 Jan 17  2016 90-mandatory.d
+
+/etc/polkit-1/localauthority/10-vendor.d:
+total 0
+
+/etc/polkit-1/localauthority/20-org.d:
+total 0
+
+/etc/polkit-1/localauthority/30-site.d:
+total 0
+
+/etc/polkit-1/localauthority/50-local.d:
+total 0
+
+/etc/polkit-1/localauthority/90-mandatory.d:
+total 0
+```
+
+
+
+
+
+
 
 #### Mate "Power Statistics" panel
 
