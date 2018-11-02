@@ -538,6 +538,133 @@ total 0
 
 
 
+
+----
+possibly related to panel icons:
+
+confirm there is no file `~/.config/autostart/nm-applet.desktop` [[ref](https://askubuntu.com/questions/1031950/can-t-get-network-applet-back-in-ubuntu-mate-18-04)]
+
+
+
+----
+side note wrt the screen blanking: possibly seeing kernel errors?
+```
+[    2.168579] usb 1-1.4: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[    2.168588] usb 1-1.4: Product: USB Receiver
+[    2.168596] usb 1-1.4: Manufacturer: Logitech
+[    2.764705] systemd[1]: File /lib/systemd/system/systemd-journald.service:36 configures an IP firewall (IPAddressDeny=any), but the local system does not support BPF/cgroup based firewalling.
+[    2.764730] systemd[1]: Proceeding WITHOUT firewalling in effect! (This warning is only shown for the first loaded unit using IP firewalling.)
+[    3.227178] random: systemd: uninitialized urandom read (16 bytes read)
+[    3.227455] systemd[1]: Started ntp-systemd-netif.path.
+[    3.227874] random: systemd: uninitialized urandom read (16 bytes read)
+[    3.227929] systemd[1]: Reached target Remote File Systems.
+[    3.228014] random: systemd: uninitialized urandom read (16 bytes read)
+[    3.228057] systemd[1]: Reached target Swap.
+[    3.228392] systemd[1]: Started Forward Password Requests to Wall Directory Watch.
+[    3.229382] systemd[1]: Set up automount Arbitrary Executable File Formats File System Automount Point.
+[    3.409116] media: Linux media interface: v0.10
+[    3.438415] Linux video capture interface: v2.00
+[    3.521409] bcm2835_v4l2: module is from the staging directory, the quality is unknown, you have been warned.
+[    3.697127] EXT4-fs (mmcblk0p2): re-mounted. Opts: (null)
+[    3.761809] systemd-journald[100]: Received request to flush runtime journal from PID 1
+[    3.825364] systemd-journald[100]: File /var/log/journal/a16cd74fbe0341468458fcd1e0c649b9/system.journal corrupted or uncleanly shut down, renaming and replacing.
+[    4.214488] i2c /dev entries driver
+[    4.425362] snd_bcm2835: module is from the staging directory, the quality is unknown, you have been warned.
+[    4.428196] bcm2835_alsa bcm2835_alsa: card created with 8 channels
+[    5.502668] brcmfmac: F1 signature read @0x18000000=0x1541a9a6
+[    5.513209] brcmfmac: brcmf_fw_map_chip_to_name: using brcm/brcmfmac43430-sdio.bin for chip 0x00a9a6(43430) rev 0x000001
+[    5.513501] usbcore: registered new interface driver brcmfmac
+[    5.865757] brcmfmac: brcmf_c_preinit_dcmds: Firmware version = wl0: Aug 29 2016 20:48:16 version 7.45.41.26 (r640327) FWID 01-4527cfab
+[    5.866669] brcmfmac: brcmf_c_preinit_dcmds: CLM version = API: 12.2 Data: 7.11.15 Compiler: 1.24.2 ClmImport: 1.24.1 Creation: 2014-05-26 10:53:55 Inc Data: 9.6.3 Inc Compiler: 1.29.4 Inc ClmImport: 1.31.4 Creation: 2016-08-29 20:46:38
+[    7.406122] logitech-djreceiver 0003:046D:C52B.0003: hiddev96,hidraw0: USB HID v1.11 Device [Logitech USB Receiver] on usb-3f980000.usb-1.4/input2
+[    7.417542] smsc95xx 1-1.1:1.0 enxb827eb80a95c: renamed from eth0
+[    7.601427] input: Logitech K400 Plus as /devices/platform/soc/3f980000.usb/usb1/1-1/1-1.4/1-1.4:1.2/0003:046D:C52B.0003/0003:046D:404D.0004/input/input0
+[    7.608438] logitech-hidpp-device 0003:046D:404D.0004: input,hidraw1: USB HID v1.11 Keyboard [Logitech K400 Plus] on usb-3f980000.usb-1.4:1
+[    8.426628] uart-pl011 3f201000.serial: no DMA platform data
+[    8.520194] random: crng init done
+[    8.520209] random: 7 urandom warning(s) missed due to ratelimiting
+[    8.687549] Bluetooth: Core ver 2.22
+[    8.687639] NET: Registered protocol family 31
+[    8.687646] Bluetooth: HCI device and connection manager initialized
+[    8.687671] Bluetooth: HCI socket layer initialized
+[    8.687686] Bluetooth: L2CAP socket layer initialized
+[    8.687720] Bluetooth: SCO socket layer initialized
+[    8.822881] Bluetooth: HCI UART driver ver 2.3
+[    8.822898] Bluetooth: HCI UART protocol H4 registered
+[    8.822904] Bluetooth: HCI UART protocol Three-wire (H5) registered
+[    8.823129] Bluetooth: HCI UART protocol Broadcom registered
+[   10.040793] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[   10.162386] smsc95xx 1-1.1:1.0 enxb827eb80a95c: entering SUSPEND2 mode
+[   10.585565] Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+[   10.585599] Bluetooth: BNEP filters: protocol multicast
+[   10.585993] Bluetooth: BNEP socket layer initialized
+[   11.814551] IPv6: ADDRCONF(NETDEV_UP): enxb827eb80a95c: link is not ready
+[   11.903791] smsc95xx 1-1.1:1.0 enxb827eb80a95c: hardware isn't capable of remote wakeup
+[   11.952491] IPv6: ADDRCONF(NETDEV_UP): wlan0: link is not ready
+[   11.992428] IPv6: ADDRCONF(NETDEV_UP): wlan0: link is not ready
+[   11.992449] brcmfmac: power management disabled
+[   12.588217] IPv6: ADDRCONF(NETDEV_UP): wlan0: link is not ready
+[   13.427442] smsc95xx 1-1.1:1.0 enxb827eb80a95c: link up, 100Mbps, full-duplex, lpa 0xC5E1
+[   17.183453] fuse init (API version 7.26)
+[   18.537759] Bluetooth: RFCOMM TTY layer initialized
+[   18.537785] Bluetooth: RFCOMM socket layer initialized
+[   18.537809] Bluetooth: RFCOMM ver 1.11
+[  353.752375] logitech-hidpp-device 0003:046D:404D.0004: Can not get the protocol version.
+[ 2748.881645] logitech-hidpp-device 0003:046D:404D.0004: Can not get the protocol version.
+[ 6464.655663] logitech-hidpp-device 0003:046D:404D.0004: Can not get the protocol version.
+[ 7686.502306] logitech-hidpp-device 0003:046D:404D.0004: Can not get the protocol version.
+[10135.872491] logitech-hidpp-device 0003:046D:404D.0004: Can not get the protocol version.
+```
+
+Without errors, would expect to see "HID++ 2.0 device connected"...
+[[reference](https://elixir.bootlin.com/linux/v4.14.77/source/drivers/hid/hid-logitech-hidpp.c#L2860)]
+
+Removed keyboard dongle and plugged into different USB port:
+```
+[11958.826264] logitech-hidpp-device 0003:046D:404D.0004: HID++ 4.1 device connected.
+[11959.125474] brcmfmac: power management disabled
+[11964.319072] usb 1-1.4: reset full-speed USB device number 4 using dwc_otg
+[11964.419068] usb 1-1.4: device descriptor read/64, error -32
+[11965.289985] usb 1-1.4: USB disconnect, device number 4
+[11971.179094] usb 1-1.5: new full-speed USB device number 5 using dwc_otg
+[11971.326100] usb 1-1.5: New USB device found, idVendor=046d, idProduct=c52b
+[11971.326115] usb 1-1.5: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[11971.326124] usb 1-1.5: Product: USB Receiver
+[11971.326132] usb 1-1.5: Manufacturer: Logitech
+[11971.357241] logitech-djreceiver 0003:046D:C52B.0007: hiddev96,hidraw0: USB HID v1.11 Device [Logitech USB Receiver] on usb-3f980000.usb-1.5/input2
+[11971.506872] input: Logitech K400 Plus as /devices/platform/soc/3f980000.usb/usb1/1-1/1-1.5/1-1.5:1.2/0003:046D:C52B.0007/0003:046D:404D.0008/input/input1
+[11971.507641] logitech-hidpp-device 0003:046D:404D.0008: input,hidraw1: USB HID v1.11 Keyboard [Logitech K400 Plus] on usb-3f980000.usb-1.5:1
+[11990.662279] logitech-hidpp-device 0003:046D:404D.0008: HID++ 4.1 device connected.
+```
+
+Unplug:
+```
+[12156.271104] usb 1-1.5: USB disconnect, device number 5
+```
+
+Plug back into original location:
+```
+[12172.909886] usb 1-1.4: new full-speed USB device number 6 using dwc_otg
+[12173.056854] usb 1-1.4: New USB device found, idVendor=046d, idProduct=c52b
+[12173.056870] usb 1-1.4: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[12173.056879] usb 1-1.4: Product: USB Receiver
+[12173.056887] usb 1-1.4: Manufacturer: Logitech
+[12173.088535] logitech-djreceiver 0003:046D:C52B.000B: hiddev96,hidraw0: USB HID v1.11 Device [Logitech USB Receiver] on usb-3f980000.usb-1.4/input2
+[12173.239392] input: Logitech K400 Plus as /devices/platform/soc/3f980000.usb/usb1/1-1/1-1.4/1-1.4:1.2/0003:046D:C52B.000B/0003:046D:404D.000C/input/input2
+[12173.243794] logitech-hidpp-device 0003:046D:404D.000C: input,hidraw1: USB HID v1.11 Keyboard [Logitech K400 Plus] on usb-3f980000.usb-1.4:1
+```
+
+Press [enter] key several times:
+```
+[12219.433281] logitech-hidpp-device 0003:046D:404D.000C: HID++ 4.1 device connected.
+```
+
+
+---
+
+
+
+
 #### Mate "Power Statistics" panel
 
 * observed on this panel: `cannot enable timerstats`
