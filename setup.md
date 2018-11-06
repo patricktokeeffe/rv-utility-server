@@ -44,16 +44,12 @@ a password*.
 
 ### System Upgrades
 
-Immediately after first boot, apply system updates:
+On (next) first boot, apply system updates then reboot:
 ```
 sudo apt update
-sudo apt upgrade
-```
-
-Then check for Raspberry Pi firmware updates:
-```
-sudo apt install rpi-update -y
-sudo rpi-update
+sudo apt dist-upgrade -y
+...
+sudo reboot
 ```
 
 When you're ready, trigger the update to 18.04 LTS:
