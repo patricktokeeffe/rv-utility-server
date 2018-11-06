@@ -224,9 +224,288 @@ sudo apt install network-manager-openconnect-gnome -y
 
 
 
-
-
 ### Other things to look into:
+
+#### Screensaver issue
+
+Somehow lost keyboard/mouse input on primary/local (HDMI) display...
+
+Had started by troubleshooting why display blanked out even though screensaver
+was disabled... looks like it's power management.
+
+* https://ubuntu-mate.community/t/mate-screensaver-stops-keyboard-from-working/16800/12
+
+![current settings](2018_10_31_17_21_02_dmz_prototype_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+![current settings](2018_10_31_17_21_15_dmz_prototype_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+To wake up display from console (one-liner did *not* work) [[ref](https://raspberrypi.stackexchange.com/a/48285/54372)]:
+```
+export DISPLAY=:0
+xset s reset
+```
+
+
+**2018-11-01** - found display is still soft-blanked (on, but black, but clearly
+has backlighting active). observe through `htop` that `mate-screensaver` has
+absurd walltime:
+
+![screenshot](2018_11_01_10_05_31_Cmder.png)
+
+Computer ignores wireless keyboard/mouse combo, wired keyboard and wired mouse.
+Switching SD card into another Raspberry Pi does not resolve issue.
+
+Opened forum post about the issue: https://ubuntu-mate.community/t/keyboard-mouse-locked-out-of-local-session/18161
+
+
+**2018-11-05** - revisiting this issue because was using `rpi-update` incorrectly.
+
+Current situation:
+```
+lar@dmz:~$ uname -a
+Linux dmz 4.14.77-v7+ #1154 SMP Fri Oct 19 16:01:02 BST 2018 armv7l armv7l armv7l GNU/Linux
+lar@dmz:~$ lsb_release -a
+No LSB modules are available.
+Distributor ID: Ubuntu
+Description:    Ubuntu 18.04.1 LTS
+Release:        18.04
+Codename:       bionic
+lar@dmz:~$ apt-cache policy ocserv
+ocserv:
+  Installed: 0.11.9-1build1
+  Candidate: 0.11.9-1build1
+  Version table:
+ *** 0.11.9-1build1 500
+        500 http://ports.ubuntu.com bionic/universe armhf Packages
+        100 /var/lib/dpkg/status
+lar@dmz:~$
+```
+
+Going to [re-install Raspberry Pi firmware](https://raspberrypi.stackexchange.com/questions/4355/do-i-still-need-rpi-update-if-i-am-using-the-latest-version-of-raspbian/7302#7302)...
+```
+sudo apt-get install --reinstall raspberrypi-bootloader raspberrypi-kernel
+```
+...fails:
+```
+lar@dmz:~$ sudo apt-get install --reinstall raspberrypi-bootloader raspberrypi-kernel
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+Reinstallation of raspberrypi-bootloader is not possible, it cannot be downloaded.
+Reinstallation of raspberrypi-kernel is not possible, it cannot be downloaded.
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+lar@dmz:~$ sudo apt-get install -f --reinstall raspberrypi-bootloader raspberrypi-kernel
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+Reinstallation of raspberrypi-bootloader is not possible, it cannot be downloaded.
+Reinstallation of raspberrypi-kernel is not possible, it cannot be downloaded.
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+lar@dmz:~$ sudo apt-get install --reinstall raspberrypi-bootloader/bionic raspberrypi-kernel/bionic
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+E: Release 'bionic' for 'raspberrypi-bootloader' was not found
+E: Release 'bionic' for 'raspberrypi-kernel' was not found
+lar@dmz:~$ apt-cache policy raspberrypi-bootloader
+raspberrypi-bootloader:
+  Installed: 1.20161215-1~xenial1.0
+  Candidate: 1.20161215-1~xenial1.0
+  Version table:
+ *** 1.20161215-1~xenial1.0 100
+        100 /var/lib/dpkg/status
+lar@dmz:~$ apt-cache policy raspberrypi-kernel
+raspberrypi-kernel:
+  Installed: 1.20161215-1~xenial1.0
+  Candidate: 1.20161215-1~xenial1.0
+  Version table:
+ *** 1.20161215-1~xenial1.0 100
+        100 /var/lib/dpkg/status
+lar@dmz:~$ sudo apt-get install --reinstall raspberrypi-bootloader/xenial raspberrypi-kernel/xenial --dry-run
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+E: Release 'xenial' for 'raspberrypi-bootloader' was not found
+E: Release 'xenial' for 'raspberrypi-kernel' was not found
+lar@dmz:~$
+```
+
+Try updating to bleeding edge: `sudo rpi-update`...  
+Updated successfully to 4.17.79+: `2267b322afdb18b4abf9603fea836916190b1b5d`
+
+Rebooted... no change: still cannot control keyboard or mouse, but VNC session
+works OK. Produces following output when Logitech wireless mouse plugged in:
+```
+[  148.340201] usb 1-1.5: new full-speed USB device number 5 using dwc_otg
+[  148.475087] usb 1-1.5: New USB device found, idVendor=046d, idProduct=c534
+[  148.475103] usb 1-1.5: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[  148.475112] usb 1-1.5: Product: USB Receiver
+[  148.475121] usb 1-1.5: Manufacturer: Logitech
+[  148.481281] input: Logitech USB Receiver as /devices/platform/soc/3f980000.usb/usb1/1-1/1-1.5/1-1.5:1.0/0003:046D:C534.0005/input/input1
+[  148.551483] hid-generic 0003:046D:C534.0005: input,hidraw2: USB HID v1.11 Keyboard [Logitech USB Receiver] on usb-3f980000.usb-1.5/input0
+[  148.559288] input: Logitech USB Receiver as /devices/platform/soc/3f980000.usb/usb1/1-1/1-1.5/1-1.5:1.1/0003:046D:C534.0006/input/input2
+[  148.621036] hid-generic 0003:046D:C534.0006: input,hiddev97,hidraw3: USB HID v1.11 Mouse [Logitech USB Receiver] on usb-3f980000.usb-1.5/input1
+```
+
+![before](2018_11_05_18_14_51_Cmder.png)
+![after](2018_11_05_18_15_34_Cmder.png)
+
+```
+lar@dmz:~$ uname -a
+Linux dmz 4.14.79-v7+ #1159 SMP Sun Nov 4 17:50:20 GMT 2018 armv7l armv7l armv7l GNU/Linux
+lar@dmz:~$ lsb_release -a
+No LSB modules are available.
+Distributor ID: Ubuntu
+Description:    Ubuntu 18.04.1 LTS
+Release:        18.04
+Codename:       bionic
+```
+
+OK, referring to DMZ#1: "current" kernel is 4.14.76 (Oct 15). Reinstall specifying
+kernel revision `0018be69dafd215a9bf1c23a887fc15464a754b3`:
+```
+lar@dmz:~$ uname -a
+Linux dmz 4.14.76-v7+ #1150 SMP Mon Oct 15 15:19:23 BST 2018 armv7l armv7l armv7l GNU/Linux
+lar@dmz:~$ lsb_release -a
+No LSB modules are available.
+Distributor ID: Ubuntu
+Description:    Ubuntu 18.04.1 LTS
+Release:        18.04
+Codename:       bionic
+```
+...NOPE still no keyboard/mouse input on local display.
+
+Trying disabling `vncserver1.service`... reboot... NO DIFFERENCE.
+
+Re-enabled `vncserver1.service` to attempt launching keyboard/mouse settings
+using GUI control panel. VERY INTERESTING: keyboard applet will *not* launch:
+
+![control panel](2018_11_05_19_12_56_dmz_localhost_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+OK! Here's the error message:
+```
+mate-keyboard-properties 
+[1541475267,000,xklavier.c:xkl_engine_constructor/] 	All backends failed, last result: -1
+
+(mate-keyboard-properties:6264): GLib-CRITICAL **: 19:34:27.906: g_hash_table_destroy: assertion 'hash_table != NULL' failed
+
+(mate-keyboard-properties:6264): GLib-GObject-CRITICAL **: 19:34:27.906: object XklEngine 0x21c63d0 finalized while still in-construction
+
+(mate-keyboard-properties:6264): GLib-GObject-CRITICAL **: 19:34:27.906: Custom constructor for class XklEngine returned NULL (which is invalid). Please use GInitable instead.
+Segmentation fault
+```
+
+
+
+> side note:
+> 
+> * https://duckduckgo.com/?q=%22No+X+keyboard+found%2C+retrying%22&atb=v102-1_f&ia=qa
+> * https://bugs.launchpad.net/onboard/+bug/1001736
+> * https://askubuntu.com/questions/458615/cant-type-in-login-password-because-no-keyboard-is-found
+> 
+> ![on screen keyboard](2018_11_05_19_15_27_dmz_localhost_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+
+![1/4](2018_11_05_19_26_11_dmz_localhost_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+![2/4](2018_11_05_19_27_14_dmz_localhost_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+![3/4](2018_11_05_19_27_22_dmz_localhost_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+![4/4](2018_11_05_19_27_30_dmz_localhost_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+Launched terminal within vnc and reconfigued keyboard with defaults:
+```
+lar@dmz:~/Desktop$ sudo dpkg-reconfigure keyboard-configuration 
+[sudo] password for lar: 
+XKB extension not present on :1
+Your console font configuration will be updated the next time your system
+boots. If you want to update it now, run 'setupcon' from a virtual console.
+update-initramfs: deferring update (trigger activated)
+Processing triggers for initramfs-tools (0.130ubuntu3.5) ...
+```
+
+...Rebooted to make effective. Did not impact the local session - still broken.
+
+Can we boot into recovery mode? https://wiki.ubuntu.com/RecoveryMode
+* Hold <Shift> ... NOPE
+* Press <Esc> a lot ... NOPE
+
+Continuing to troubleshoot.. which control panel applets don't work? 
+* keyboard (we already knew)
+* Light DM greeter settings
+    * re-try from a terminal: `lightdm-gtk-greeter-settings`
+    * received permissions error
+    * can browse still: observe *onboard* is the keyboard? for accessibility anyway
+      also notice screen-blank-timeout is also 30m here  
+      ![screenshot](2018_11_05_20_08_38_dmz_localhost_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+Retry for recovery mode:
+* with wired keyboard attached, holding [Shift]... NOPE
+* after removing wireless keyboards (ONLY wired), holding [Shift]... NOPE
+* swap DMZ#3 back to DMZ#1...
+* apparently there is no recovery mode?
+    * murmurings
+        * https://wiki.ubuntu.com/RecoveryMode
+        * https://raspberrypi.stackexchange.com/questions/46875/how-to-enter-recovery-mode-without-usb-keyboard
+        * https://raspberrypi.stackexchange.com/questions/59366/unable-to-enter-recovery-mode-on-ubuntu-mate
+        * https://www.raspberrypi.org/forums/viewtopic.php?p=611384
+    * hold shift -> no
+    * rapid press shift -> no
+    * project leader says not existant in RPI2: https://ubuntu-mate.community/t/raspberry-pi-recovery-mode-running-ubuntu-mate/2466
+    * other people claim they can't avoid it in RPI3:
+        * https://ubuntu-mate.community/t/grub-in-raspberry-pi-3/16217
+        * https://ubuntu-mate.community/t/raspberry-pi-3-ubuntu-mate-15-10-emergency-mode-every-time/4466
+        * https://ubuntu-mate.community/t/getting-emergency-mode-screen-on-boot-up-every-time/2626
+
+
+Getting *really* desperate:
+* reinstall MATE keyboard settings panel.... wonderful! can't do it!
+  reinstall the entire mate control panel:
+```
+lar@dmz:~$ sudo apt-get install --reinstall mate-
+mate-accessibility-profiles      mate-common                      mate-desktop-environment-extra   mate-media                       mate-optimus                     mate-screensaver                 mate-settings-daemon-dev         mate-user-share
+mate-applet-appmenu              mate-control-center              mate-desktop-environment-extras  mate-media-common                mate-panel                       mate-screensaver-common          mate-system-monitor              mate-user-share-common
+mate-applet-brisk-menu           mate-control-center-common       mate-dock-applet                 mate-menu                        mate-panel-common                mate-sensors-applet              mate-system-monitor-common       mate-utils
+mate-applets                     mate-core                        mate-hud                         mate-menus                       mate-polkit                      mate-sensors-applet-common       mate-terminal                    mate-utils-common
+mate-applets-common              mate-desktop                     mate-icon-theme                  mate-netbook                     mate-polkit-bin                  mate-sensors-applet-nvidia       mate-terminal-common             mate-window-applets-common
+mate-backgrounds                 mate-desktop-common              mate-icon-theme-faenza           mate-netbook-common              mate-polkit-common               mate-session-manager             mate-themes                      mate-window-buttons-applet
+mate-calc                        mate-desktop-environment         mate-indicator-applet            mate-notification-daemon         mate-power-manager               mate-settings-daemon             mate-tweak                       mate-window-menu-applet
+mate-calc-common                 mate-desktop-environment-core    mate-indicator-applet-common     mate-notification-daemon-common  mate-power-manager-common        mate-settings-daemon-common      mate-user-guide                  mate-window-title-applet
+lar@dmz:~$ sudo apt-get install --reinstall mate-control-center
+[sudo] password for lar:
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+0 upgraded, 0 newly installed, 1 reinstalled, 0 to remove and 0 not upgraded.
+Need to get 202 kB of archives.
+After this operation, 0 B of additional disk space will be used.
+Get:1 http://ports.ubuntu.com bionic/universe armhf mate-control-center armhf 1.20.2-2ubuntu1 [202 kB]
+Fetched 202 kB in 1s (231 kB/s)
+(Reading database ... 172570 files and directories currently installed.)
+Preparing to unpack .../mate-control-center_1.20.2-2ubuntu1_armhf.deb ...
+Unpacking mate-control-center (1.20.2-2ubuntu1) over (1.20.2-2ubuntu1) ...
+Processing triggers for mime-support (3.60ubuntu1) ...
+Processing triggers for desktop-file-utils (0.23-1ubuntu3.18.04.1) ...
+Setting up mate-control-center (1.20.2-2ubuntu1) ...
+Processing triggers for bamfdaemon (0.5.3+18.04.20180207.2-0ubuntu1) ...
+Rebuilding /usr/share/applications/bamf-2.index...
+lar@dmz:~$
+```
+
+Try launching from control panel... FAILURE! Try again from command line (as
+sudo)... success!
+* observe keyboard model is "unknown"
+* note keyboard model list is empty
+
+![screenshot](2018_11_05_20_39_43_dmz_localhost_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+![screenshot](2018_11_05_20_39_48_dmz_localhost_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+![screenshot](2018_11_05_20_39_54_dmz_localhost_lar_s_X_desktop_dmz_1_VNC_Viewer.png)
+
+
+Time for large hammer: TURN OFF AUTOMATIC GUI LOGIN!
+
+
 
 #### Cannot control wi-fi issue
 
