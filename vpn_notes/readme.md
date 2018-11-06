@@ -961,6 +961,106 @@ Oct 26 11:16:08 dmz ocserv[26043]: worker[lar]: 134.121.20.237 sent periodic sta
 Oct 26 11:16:08 dmz ocserv[22435]: sec-mod: temporarily closing session for lar (session: wVjyAI)
 ```
 
+---
+
+> *2018-11-05*
+> 
+> Powered off test machine last week to troubleshoot VNC red icon display issue...
+> got extremely side-tracked trying to fix PolicyKit/wifi issue... setup DMZ#1
+> on office computer to continue investigation.
+
+Had stayed connected to VPN for >6 hours on Friday. Current status:
+```
+lar@dmz:~$ ocserv -v
+ocserv 0.10.11
+
+Compiled with seccomp, tcp-wrappers, oath, gssapi, PAM, PKCS#11, AnyConnect,
+GnuTLS version: 3.4.10 (compiled with 3.4.9)
+```
+```
+lar@dmz:~$ uname -a
+Linux dmz 4.14.76-v7+ #1150 SMP Mon Oct 15 15:19:23 BST 2018 armv7l armv7l armv7l GNU/Linux
+```
+```
+lar@dmz:~$ lsb_release -a
+No LSB modules are available.
+Distributor ID: Ubuntu
+Description:    Ubuntu 16.04.5 LTS
+Release:        16.04
+Codename:       xenial
+```
+
+Determine can get newer version while remaining on Xenial by adding Bionic repo,
+then pinning to Xenial or currently installed:
+
+Add new repo by editing `/etc/apt/sources.list` or using System > Software & Updates:
+`deb http://ports.ubuntu.com/ bionic universe`. 
+
+* https://askubuntu.com/questions/27362/how-to-only-install-updates-from-a-specific-repository/57749#57749
+
+```
+sudo nano /etc/apt/preferences.d/bionic
+```
+```
+Package: *
+Pin: release n=bionic
+Pin-Priority: 50
+```
+
+Now the `ocserv` version 0.11.9 package is available, but must be installed manually:
+```
+lar@dmz:~$ sudo apt update; apt-cache policy ocserv
+Hit:1 http://ppa.launchpad.net/flexiondotorg/minecraft/ubuntu xenial InRelease
+Hit:2 http://ports.ubuntu.com xenial InRelease
+Hit:3 http://ports.ubuntu.com xenial-updates InRelease
+Hit:4 http://ppa.launchpad.net/ubuntu-mate-dev/welcome/ubuntu xenial InRelease
+Hit:5 http://ports.ubuntu.com xenial-security InRelease
+Hit:6 http://ports.ubuntu.com xenial-backports InRelease
+Hit:7 http://ppa.launchpad.net/ubuntu-mate-dev/xenial-mate/ubuntu xenial InRelease
+Hit:8 http://ports.ubuntu.com/ubuntu-ports xenial InRelease
+Hit:9 http://ports.ubuntu.com/ubuntu-ports xenial-security InRelease
+Hit:10 http://ppa.launchpad.net/ubuntu-pi-flavour-makers/ppa/ubuntu xenial InRelease
+Hit:11 http://ports.ubuntu.com/ubuntu-ports xenial-updates InRelease
+Hit:12 http://ports.ubuntu.com bionic InRelease
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+31 packages can be upgraded. Run 'apt list --upgradable' to see them.
+ocserv:
+  Installed: 0.10.11-1build1
+  Candidate: 0.10.11-1build1
+  Version table:
+     0.11.9-1build1 50
+         50 http://ports.ubuntu.com bionic/universe armhf Packages
+ *** 0.10.11-1build1 500
+        500 http://ports.ubuntu.com xenial/universe armhf Packages
+        500 http://ports.ubuntu.com/ubuntu-ports xenial/universe armhf Packages
+        100 /var/lib/dpkg/status
+```
+
+Simulated install produces some warnings:
+```
+lar@dmz:~$ sudo apt-get install -f -t bionic ocserv --dry-run
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+Some packages could not be installed. This may mean that you have
+requested an impossible situation or if you are using the unstable
+distribution that some required packages have not yet been created
+or been moved out of Incoming.
+The following information may help to resolve the situation:
+
+The following packages have unmet dependencies:
+ ocserv : Depends: libgnutls30 (>= 3.5.6) but 3.4.10-4ubuntu1.4 is to be installed
+          Depends: libgssapi-krb5-2 (>= 1.14+dfsg) but 1.13.2+dfsg-5ubuntu2 is to be installed
+          Depends: libhttp-parser2.7.1 (>= 2.1) but it is not installable
+          Depends: libradcli4 but it is not going to be installed
+          Depends: libreadline7 (>= 6.0) but it is not installable
+          Depends: libtasn1-6 (>= 4.12) but 4.7-3ubuntu0.16.04.3 is to be installed
+E: Unable to correct problems, you have held broken packages.
+```
+
+..warrants some testing
 
 
 
