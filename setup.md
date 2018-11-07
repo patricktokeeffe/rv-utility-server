@@ -40,6 +40,156 @@ sudo apt dist-upgrade -y
 sudo reboot
 ```
 
+### Enable SSH Server
+
+Enable the SSH service:
+```
+sudo systemctl enable ssh.service
+sudo systemctl start ssh.service
+```
+
+Then add some keys to `~/.ssh/authorized_keys`:
+```
+# from some other machine:
+ssh-copy-id user@our-new-server
+```
+
+Test it, of course:
+```
+ssh user@our-new-server
+```
+
+And finally disable password login:
+```
+sudo nano /etc/ssh/sshd_config
+```
+```diff
+ # Change to no to disable tunnelled clear text passwords
+-#PasswordAuthentication yes
++PasswordAuthentication no
+```
+```
+sudo systemctl restart ssh.service
+```
+
+### Enable persistent system logs
+
+Ensure *systemd* keeps logs after reboots by creating log directory:
+```
+sudo mkdir -p /var/log/journal
+```
+
+### Fix the *firefox* package
+
+The *Firefox* browser is affected by a crash loop on Ubuntu Mate 16.04 LTS.
+Remove it and install *Chromium* instead:
+```
+sudo apt autoremove firefox -y
+sudo apt install chromium-browser -y
+```
+
+### Fix the *ureadahead* package
+
+The *ureadahead* package is not functional, but is still included in Ubuntu 
+16.04 LTS. Remove it:
+
+> *This package should be removed by Ubuntu 18.10 and this step will be 
+> unnecessary [[ref1](https://launchpad.net/ubuntu/+source/ubuntu-meta),
+> [ref2](https://askubuntu.com/a/1087007/227779)]*
+
+```
+sudo apt autoremove ureadahead
+```
+
+### Fix the *cups-filters* package
+
+Ubuntu 16.04 includes kernel drivers for parallel printer ports (which the Pi
+does not have). These extra modules prevent the *systemd-modules-load.service*
+from loading so remove them and reboot:
+```
+sudo rm /etc/modules-load.d/cups-filters.conf
+sudo reboot
+```
+
+Also, prevent package updates from re-introducing this error:
+```
+sudo /etc/default/cups
+```
+```
+# do not load parallel port modules
+LOAD_LP_MODULES=no
+```
+
+### Fix the *popularity-contest* package
+
+The *popularity-contest* package is not distributed with a configuration file
+in Ubuntu 16.04 LTS. To fix, re-run the package configuration:
+
+> Failing to fix this package will result in constant error messages from
+> *cron*, which may result in a slew of unwanted email alerts later on.
+
+```
+sudo dpkg-reconfigure popularity-contest
+```
+
+### Remove unnecessary packages
+
+These packages won't be useful to support the Research Van, and we don't want
+to consume bandwidth with potential updates for nothing. Just uninstall them:
+
+> *To facilitate copy-and-pasting, the following line does **not** include a
+> `-y` argument.*
+
+```
+sudo apt autoremove --purge scratch minecraft-pi thunderbird youtube-dl youtube-dlg sonic-pi brasero rhythmbox qjackctl sense-emu-tools pidgin hexchat shotwell cheese synapse plank ubuntu-mate-welcome
+```
+
+
+
+
+
+
+### Enable watchdog hardware
+
+> **Work in progress**
+> 
+> **TODO:** revisit this section to finish setup
+
+Refs:
+* https://github.com/wsular/urbanova-aqnet-rpi-node/tree/master/doc/install
+* https://stackoverflow.com/questions/37144547/setup-issues-using-the-hw-watchdog-with-systemd#46441311
+* https://www.raspberrypi.org/forums/viewtopic.php?f=29&t=147501
+* https://blog.kmp.or.at/watchdog-for-raspberry-pi/
+* https://packages.ubuntu.com/search?suite=all&arch=any&keywords=watchdog
+
+
+Install and enable the *watchdog* service to prevent system freezes:
+```
+sudo apt install watchdog -y
+```
+```
+sudo nano /boot/config.txt
+```
+```diff
+ ## watchdog
+ ##     Set to "on" to enable the hardware watchdog
+ ##
+ ##     Default off.
+ ##
+-#dtparam=watchdog=off
++dtparam=watchdog=on
+```
+
+... possibly just use `systemctl enable watchdog`?
+
+
+
+
+
+---
+
+> *v-- this section put on hold --v*
+
 
 ### Boot Options
 
@@ -60,30 +210,6 @@ Boot Options -> Desktop / CLI -> Console Text
 
 Before exiting, trigger the *raspi-config* internal update tool. 
 
-### Enable SSH Server
-
-If you haven't yet, enable the SSH service using *raspi-config* or *systemctl*:
-```
-sudo systemctl enable sshd.service
-sudo systemctl start sshd.service
-```
-
-Then add some keys to `~/.ssh/authorized_keys` and disable password login:
-```
-sudo nano /etc/sshd_config
-```
-```diff
- # Change to no to disable tunnelled clear text passwords
--#PasswordAuthentication yes
-+PasswordAuthentication no
-```
-
-### Enable persistent system logs
-
-Ensure *systemd* keeps logs after reboots by creating log directory:
-```
-sudo mkdir -p /var/log/journal
-```
 
 ### Enable the firewall
 
@@ -113,87 +239,15 @@ As other programs get installed, allow them through too:
 
 * probably need to enable 443/udp for *ocserv*?
 
-### Fix the `popularity-contest` package
-
-Ubuntu Mate currently has an annoying configuration problem: the file 
-`/etc/popularity-contest.conf` is missing so *cron* will send error reports.
-To fix it, re-run the package configuration (we chose *Yes* to participate) 
-[[ref](http://usefulramblings.org/?page_id=6705)]:
-```
-sudo dpkg-reconfigure popularity-contest
-```
-
-### Fix the default browser issue
-
-Ubuntu Mate also includes a configuration of *Firefox* that crashes in a loop.
-Uninstall it and install *Chromium* instead:
-```
-sudo apt autoremove firefox -y
-sudo apt install chromium-browser -y
-```
-
-### Fix the *cups-filters* package
-
-By default, an error in the *cups-filters* package configuration will prevent
-the *systemd-modules-load.service* from successfully loading. To fix, remove
-kernel modules supporting the LP printer port (nonexistent on Raspberry Pi 3).
-
-Resources:
-* https://discourse.osmc.tv/t/failed-to-start-load-kernel-modules/3163/13
-* https://www.raspberrypi.org/forums/viewtopic.php?p=949249
-* https://askubuntu.com/questions/795360/kernel-load-module-error-during-boot-up/795421#795421
-
-Procedure: remove config file, update defaults, then re-install package.
-```
-sudo rm /etc/modules-load.d/cups-filters.conf
-sudo nano /etc/defaults/cups
-```
-```
-LOAD_LP_MODULE=no
-```
-```
-sudo apt install --reinstall cups-filters
-sudo reboot
-```
-
-Verify service starts okay now:
-```
-lar@dmz:~$ sudo systemctl status systemd-modules-load.service
-● systemd-modules-load.service - Load Kernel Modules
-   Loaded: loaded (/lib/systemd/system/systemd-modules-load.service; static; vendor preset: enabled)
-   Active: active (exited) since Sun 2018-01-28 07:58:19 PST; 9 months 2 days ago
-     Docs: man:systemd-modules-load.service(8)
-           man:modules-load.d(5)
-  Process: 101 ExecStart=/lib/systemd/systemd-modules-load (code=exited, status=0/SUCCESS)
- Main PID: 101 (code=exited, status=0/SUCCESS)
-
-Jan 28 07:58:19 dmz systemd-modules-load[101]: Inserted module 'bcm2835_v4l2'
-Jan 28 07:58:19 dmz systemd-modules-load[101]: Inserted module 'i2c_dev'
-Jan 28 07:58:19 dmz systemd-modules-load[101]: Inserted module 'snd_bcm2835'
-Jan 28 07:58:19 dmz systemd[1]: Started Load Kernel Modules.
-```
-
-### Remove defunct packages
-
-The following packages are not functional, but are still included with Ubuntu
-Mate 18.04 LTS. (*Sources indicate this package will be removed in 18.10 and
-this procedure will be unnecessary [[ref1](https://launchpad.net/ubuntu/+source/ubuntu-meta),
-[ref2](https://askubuntu.com/a/1087007/227779)]*)
-
-```
-sudo apt autoremove ureadahead
-```
-
-> This will resolve issues with the `ureadahead.service` failing to load.
 
 
-### Remove unnecessary packages
 
-These packages won't be useful to support the Research Van, and we don't want
-to consume bandwidth with potential updates for nothing. Just uninstall them:
-```
-sudo apt autoremove scratch minecraft-pi thunderbird youtube-dl youtube-dlg sonic-pi brasero rhythmbox qjackctl sense-emu-tools pidgin hexchat ubuntu-mate-welcome
-```
+
+> *\^-- on hold --^*
+---
+
+### Other things to look into:
+
 
 ### Install other useful packages
 
@@ -201,13 +255,6 @@ Add ability to connect back to WSU VPN (Cisco AnyConnect protocol):
 ```
 sudo apt install network-manager-openconnect-gnome -y
 ```
-
-
-
-
-### Other things to look into:
-
-
 
 
 #### Mate "Power Statistics" panel
@@ -224,6 +271,189 @@ sudo apt install network-manager-openconnect-gnome -y
 ----
 
 ## Software
+
+Packages are listed in a roughly-recommended order of installation:
+
+
+### Terminal Session Manager (*tmux*)
+
+Install *tmux*:
+```
+sudo apt install tmux
+```
+
+Modify profile to automatically start *tmux* when logged in over SSH 
+[[ref](https://stackoverflow.com/a/40192494/2946116)]:
+> *Run this command as your admin user, not root (do not use sudo).*
+```
+echo '
+if [[ -z "$TMUX" ]] && [ "$SSH_CONNECTION" != "" ]; then
+    tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux
+fi
+' >> .bashrc
+```
+
+> *Future work?* <https://github.com/tmux-plugins/tmux-continuum>
+
+
+
+
+---
+**<-- work in progress -->**
+
+---
+
+
+### System Monitoring Service (*RPi-Monitor*)
+
+> Very seriously look at disabling the so-called predictable network interface names!
+
+Install *rpimonitor* 
+[[ref](https://xavierberger.github.io/RPi-Monitor-docs/11_installation.html)]:
+```
+sudo apt-get install dirmngr
+sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 2C0D3C0F
+sudo wget http://goo.gl/vewCLL -O /etc/apt/sources.list.d/rpimonitor.list
+sudo apt-get update
+sudo apt install rpimonitor -y
+```
+
+Initialize:
+```
+sudo /etc/init.d/rpimonitor update
+```
+
+Then fixup the networking configuration:
+```
+sudo nano /etc/rpimonitor/template/network.conf
+```
+
+Also enable the *Top3* addon for monitoring processes:
+```
+sudo cp /usr/share/rpimonitor/web/addons/top3/top3.cron /etc/cron.d/top3
+```
+```
+sudo nano /etc/rpimonitor/data.conf
+```
+```diff
+ #web.addons.4.name=Custom addons
+ #web.addons.4.addons=custom
+ #web.addons.4.showTitle=0
+ #web.addons.4.url=/addons/custom/custominfo.html
+ 
+-#web.addons.5.name=Top3
+-#web.addons.5.addons=top3
++web.addons.5.name=Top3
++web.addons.5.addons=top3
+```
+```
+sudo nano /etc/rpimonitor/template/cpu.conf
+```
+```diff
+ web.status.1.content.1.name=CPU
+ web.status.1.content.1.icon=cpu.png
+ #web.status.1.content.1.line.1="Loads: <b>" + data.load1 + "</b> [1min] - <b>" + data.load5 + "</b> [5min] - <b>" + data.load15 + "$
+ web.status.1.content.1.line.1=JustGageBar("Load", "1min", 0, data.load1, data.max_proc, 100, 80)+" "+JustGageBar("Load", "5min", 0,$
+ web.status.1.content.1.line.2="CPU frequency: <b>" + data.cpu_frequency + "MHz</b> Voltage: <b>" + data.cpu_voltage + "V</b>"
+ web.status.1.content.1.line.3="Scaling governor: <b>" + data.scaling_governor + "</b>"
+-#web.status.1.content.1.line.4=InsertHTML("/addons/top3/top3.html")
++web.status.1.content.1.line.4=InsertHTML("/addons/top3/top3.html")
+```
+
+Enable services status badges on the homepage:
+```
+sudo nano /etc/rpimonitor/data.conf
+```
+```diff
+ ...
+ include=/etc/rpimonitor/template/version.conf
+ include=/etc/rpimonitor/template/uptime.conf
++include=/etc/rpimonitor/template/services.conf
+ include=/etc/rpimonitor/template/cpu.conf
+ include=/etc/rpimonitor/template/temperature.conf
+ include=/etc/rpimonitor/template/memory.conf
+ include=/etc/rpimonitor/template/swap.conf
+ include=/etc/rpimonitor/template/sdcard.conf
+ include=/etc/rpimonitor/template/network.conf
+```
+```
+sudo nano /etc/rpimonitor/template/services.conf
+```
+```diff
+ ...
+-dynamic.3.name=http
+-dynamic.3.source=netstat -nlt
+-dynamic.3.regexp=tcp .*:(80).*LISTEN
+-
+-dynamic.4.name=https
+-dynamic.4.source=netstat -nlt
+-dynamic.4.regexp=tcp .*:(443).*LISTEN
+-
+-dynamic.5.name=mysql
+-dynamic.5.source=netstat -nlt
+-dynamic.5.regexp=tcp .*:(3306).*LISTEN
++#dynamic.3.name=http
++#dynamic.3.source=netstat -nlt
++#dynamic.3.regexp=tcp .*:(80).*LISTEN
++
++#dynamic.4.name=https
++#dynamic.4.source=netstat -nlt
++#dynamic.4.regexp=tcp .*:(443).*LISTEN
++
++#dynamic.5.name=mysql
++#dynamic.5.source=netstat -nlt
++#dynamic.5.regexp=tcp .*:(3306).*LISTEN
++
++dynamic.6.name=vpn
++dynamic.6.source=netstat -nlt
++dynamic.6.regexp=tcp .*:(443).*LISTEN
++
++dynamic.7.name=vnc
++dynamic.7.source=netstat -nlt
++dynamic.7.regexp=tcp .*:(5901).*LISTEN
++
++dynamic.8.name=vncx11
++dynamic.8.source=netstat -nlt
++dynamic.8.regexp=tcp .*:(6001).*LISTEN
++
++dynamic.9.name=smtp
++dynamic.9.source=netstat -nlt
++dynamic.9.regexp=tcp .*:(25).*LISTEN
++
++dynamic.10.name=nut
++dynamic.10.source=netstat -nlt
++dynamic.10.regexp=tcp .*:(3493).*LISTEN
++
++dynamic.11.name=ftp
++dynamic.11.source=netstat -nlt
++dynamic.11.regexp=tcp .*:(21).*LISTEN
+
+ web.status.1.content.1.name=Servers
+ web.status.1.content.1.icon=daemons.png
+-web.status.1.content.1.line.1="<b>ssh</b> : "+Label(data.ssh,"==22","OK","success")+Label(data.ssh,"!=22","KO","danger")+" <b>rpimonitor</b> : "+Label(data.rpimonitor,"==8888","OK","success")+Label(data.rpimonitor,"!=8888","KO","danger")+" <b>nginx http</b> : "+Label(data.http,"==80","OK","success")+Label(data.http,"!=80","KO","danger")+" <b>nginx https</b> : "+Label(data.https,"==443","OK","success")+Label(data.https,"!=443","KO","danger")+" <b>mysql</b> : "+Label(data.mysql,"==3306","OK","success")+Label(data.mysql,"!=3306","KO","danger")
++#web.status.1.content.1.line.1="<b>ssh</b> : "+Label(data.ssh,"==22","OK","success")+Label(data.ssh,"!=22","KO","danger")+" <b>rpimonitor</b> : "+Label(data.rpimonitor,"==8888","OK","success")+Label(data.rpimonitor,"!=8888","KO","danger")+" <b>nginx http</b> : "+Label(data.http,"==80","OK","success")+Label(data.http,"!=80","KO","danger")+" <b>nginx https</b> : "+Label(data.https,"==443","OK","success")+Label(data.https,"!=443","KO","danger")+" <b>mysql</b> : "+Label(data.mysql,"==3306","OK","success")+Label(data.mysql,"!=3306","KO","danger")
++web.status.1.content.1.line.1="<b>ssh</b> "+Label(data.ssh,"==22","OK","success")+Label(data.ssh,"!=22","KO","danger")+" | <b>rpimonitor</b> "+Label(data.rpimonitor,"==8888","OK","success")+Label(data.rpimonitor,"!=8888","KO","danger")+" | <b>ocserv vpn</b> "+Label(data.vpn,"==443","OK","success")+Label(data.vpn,"!=443","KO","danger")+" | <b>tightvnc vnc</b> "+Label(data.vnc,"==5901","OK","success")+Label(data.vnc,"!=5901","KO","danger")+" | <b>tightvnc x11</b> "+Label(data.vncx11,"==6001","OK","success")+Label(data.vncx11,"!=6001","KO","danger")
++web.status.1.content.1.line.2="<b>postfix smtp</b> "+Label(data.smtp,"==25","OK","success")+Label(data.smtp,"!=25","KO","danger")+" | <b>nut-server</b> "+Label(data.nut,"==3493","OK","success")+Label(data.nut,"!=3493","KO","danger")+" | <b>ftp</b> "+Label(data.ftp,"==21","OK","success")+Label(data.ftp,"!=21","KO","danger")
+```
+
+> **Performance testing notes**
+>
+> The following items have been held back so that RPi-Monitor can collect
+> baseline performance data:
+>
+> * graphical vs. command line desktop boot
+> * for the VPN (ocserv), the use of DTLS vs. TCP BBR
+
+
+
+
+
+
+---
+**<-- future: -->**
+
+----
+
 
 ### Automatic Package Updates (*unattended-upgrades*)
 
@@ -294,31 +524,9 @@ References:
 * https://help.ubuntu.com/lts/serverguide/automatic-updates.html
 
 
-### Terminal Session Manager (*tmux*)
-
-Install *tmux*:
-```
-sudo apt install tmux
-```
-
-Configure so *tmux* starts automatically with each SSH login 
-[[ref](https://stackoverflow.com/a/40192494/2946116)]:
-```
-nano ~/.bashrc
-```
-```diff
-+if [[ -z "$TMUX" ]] && [ "$SSH_CONNECTION" != "" ]; then
-+    tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux
-+fi
-```
-
-> Do not use *sudo* to launch *nano* in this instance. The command should be
-> run as the user that will be used for SSH logins.
-
-> *Future work?* <https://github.com/tmux-plugins/tmux-continuum>
-
-
 ### VNC Server (*tightvncserver*)
+
+> **TODO** check out `x11vnc` as possibly much better 
 
 > *FUTURE: possibly use Google Chrome Remote Desktop for screen sharing?
 > As of 2018-10-31, share feature is not available for this platform.*
@@ -538,146 +746,6 @@ sudo apt install nut-monitor -y
 
 Launch the program from the *Applications > Internet* menu.
 
-
-### System Monitoring Service (*RPi-Monitor*)
-
-> Very seriously look at disabling the so-called predictable network interface names!
-
-Install *rpimonitor* 
-[[ref](https://xavierberger.github.io/RPi-Monitor-docs/11_installation.html)]:
-```
-sudo apt-get install dirmngr
-sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 2C0D3C0F
-sudo wget http://goo.gl/vewCLL -O /etc/apt/sources.list.d/rpimonitor.list
-sudo apt-get update
-sudo apt install rpimonitor -y
-```
-
-Initialize:
-```
-sudo /etc/init.d/rpimonitor update
-```
-
-Then fixup the networking configuration:
-```
-sudo nano /etc/rpimonitor/template/network.conf
-```
-
-Also enable the *Top3* addon for monitoring processes:
-```
-sudo cp /usr/share/rpimonitor/web/addons/top3/top3.cron /etc/cron.d/top3
-```
-```
-sudo nano /etc/rpimonitor/data.conf
-```
-```diff
- #web.addons.4.name=Custom addons
- #web.addons.4.addons=custom
- #web.addons.4.showTitle=0
- #web.addons.4.url=/addons/custom/custominfo.html
- 
--#web.addons.5.name=Top3
--#web.addons.5.addons=top3
-+web.addons.5.name=Top3
-+web.addons.5.addons=top3
-```
-```
-sudo nano /etc/rpimonitor/template/cpu.conf
-```
-```diff
- web.status.1.content.1.name=CPU
- web.status.1.content.1.icon=cpu.png
- #web.status.1.content.1.line.1="Loads: <b>" + data.load1 + "</b> [1min] - <b>" + data.load5 + "</b> [5min] - <b>" + data.load15 + "$
- web.status.1.content.1.line.1=JustGageBar("Load", "1min", 0, data.load1, data.max_proc, 100, 80)+" "+JustGageBar("Load", "5min", 0,$
- web.status.1.content.1.line.2="CPU frequency: <b>" + data.cpu_frequency + "MHz</b> Voltage: <b>" + data.cpu_voltage + "V</b>"
- web.status.1.content.1.line.3="Scaling governor: <b>" + data.scaling_governor + "</b>"
--#web.status.1.content.1.line.4=InsertHTML("/addons/top3/top3.html")
-+web.status.1.content.1.line.4=InsertHTML("/addons/top3/top3.html")
-```
-
-Enable services status badges on the homepage:
-```
-sudo nano /etc/rpimonitor/data.conf
-```
-```diff
- ...
- include=/etc/rpimonitor/template/version.conf
- include=/etc/rpimonitor/template/uptime.conf
-+include=/etc/rpimonitor/template/services.conf
- include=/etc/rpimonitor/template/cpu.conf
- include=/etc/rpimonitor/template/temperature.conf
- include=/etc/rpimonitor/template/memory.conf
- include=/etc/rpimonitor/template/swap.conf
- include=/etc/rpimonitor/template/sdcard.conf
- include=/etc/rpimonitor/template/network.conf
-```
-```
-sudo nano /etc/rpimonitor/template/services.conf
-```
-```diff
- ...
--dynamic.3.name=http
--dynamic.3.source=netstat -nlt
--dynamic.3.regexp=tcp .*:(80).*LISTEN
--
--dynamic.4.name=https
--dynamic.4.source=netstat -nlt
--dynamic.4.regexp=tcp .*:(443).*LISTEN
--
--dynamic.5.name=mysql
--dynamic.5.source=netstat -nlt
--dynamic.5.regexp=tcp .*:(3306).*LISTEN
-+#dynamic.3.name=http
-+#dynamic.3.source=netstat -nlt
-+#dynamic.3.regexp=tcp .*:(80).*LISTEN
-+
-+#dynamic.4.name=https
-+#dynamic.4.source=netstat -nlt
-+#dynamic.4.regexp=tcp .*:(443).*LISTEN
-+
-+#dynamic.5.name=mysql
-+#dynamic.5.source=netstat -nlt
-+#dynamic.5.regexp=tcp .*:(3306).*LISTEN
-+
-+dynamic.6.name=vpn
-+dynamic.6.source=netstat -nlt
-+dynamic.6.regexp=tcp .*:(443).*LISTEN
-+
-+dynamic.7.name=vnc
-+dynamic.7.source=netstat -nlt
-+dynamic.7.regexp=tcp .*:(5901).*LISTEN
-+
-+dynamic.8.name=vncx11
-+dynamic.8.source=netstat -nlt
-+dynamic.8.regexp=tcp .*:(6001).*LISTEN
-+
-+dynamic.9.name=smtp
-+dynamic.9.source=netstat -nlt
-+dynamic.9.regexp=tcp .*:(25).*LISTEN
-+
-+dynamic.10.name=nut
-+dynamic.10.source=netstat -nlt
-+dynamic.10.regexp=tcp .*:(3493).*LISTEN
-+
-+dynamic.11.name=ftp
-+dynamic.11.source=netstat -nlt
-+dynamic.11.regexp=tcp .*:(21).*LISTEN
-
- web.status.1.content.1.name=Servers
- web.status.1.content.1.icon=daemons.png
--web.status.1.content.1.line.1="<b>ssh</b> : "+Label(data.ssh,"==22","OK","success")+Label(data.ssh,"!=22","KO","danger")+" <b>rpimonitor</b> : "+Label(data.rpimonitor,"==8888","OK","success")+Label(data.rpimonitor,"!=8888","KO","danger")+" <b>nginx http</b> : "+Label(data.http,"==80","OK","success")+Label(data.http,"!=80","KO","danger")+" <b>nginx https</b> : "+Label(data.https,"==443","OK","success")+Label(data.https,"!=443","KO","danger")+" <b>mysql</b> : "+Label(data.mysql,"==3306","OK","success")+Label(data.mysql,"!=3306","KO","danger")
-+#web.status.1.content.1.line.1="<b>ssh</b> : "+Label(data.ssh,"==22","OK","success")+Label(data.ssh,"!=22","KO","danger")+" <b>rpimonitor</b> : "+Label(data.rpimonitor,"==8888","OK","success")+Label(data.rpimonitor,"!=8888","KO","danger")+" <b>nginx http</b> : "+Label(data.http,"==80","OK","success")+Label(data.http,"!=80","KO","danger")+" <b>nginx https</b> : "+Label(data.https,"==443","OK","success")+Label(data.https,"!=443","KO","danger")+" <b>mysql</b> : "+Label(data.mysql,"==3306","OK","success")+Label(data.mysql,"!=3306","KO","danger")
-+web.status.1.content.1.line.1="<b>ssh</b> "+Label(data.ssh,"==22","OK","success")+Label(data.ssh,"!=22","KO","danger")+" | <b>rpimonitor</b> "+Label(data.rpimonitor,"==8888","OK","success")+Label(data.rpimonitor,"!=8888","KO","danger")+" | <b>ocserv vpn</b> "+Label(data.vpn,"==443","OK","success")+Label(data.vpn,"!=443","KO","danger")+" | <b>tightvnc vnc</b> "+Label(data.vnc,"==5901","OK","success")+Label(data.vnc,"!=5901","KO","danger")+" | <b>tightvnc x11</b> "+Label(data.vncx11,"==6001","OK","success")+Label(data.vncx11,"!=6001","KO","danger")
-+web.status.1.content.1.line.2="<b>postfix smtp</b> "+Label(data.smtp,"==25","OK","success")+Label(data.smtp,"!=25","KO","danger")+" | <b>nut-server</b> "+Label(data.nut,"==3493","OK","success")+Label(data.nut,"!=3493","KO","danger")+" | <b>ftp</b> "+Label(data.ftp,"==21","OK","success")+Label(data.ftp,"!=21","KO","danger")
-```
-
-> **Performance testing notes**
->
-> The following items have been held back so that RPi-Monitor can collect
-> baseline performance data:
->
-> * graphical vs. command line desktop boot
-> * for the VPN (ocserv), the use of DTLS vs. TCP BBR
 
 
 ### FTP Server (*vsftpd*)
