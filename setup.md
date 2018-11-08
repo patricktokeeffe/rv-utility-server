@@ -151,22 +151,16 @@ sudo apt autoremove --purge scratch minecraft-pi thunderbird youtube-dl youtube-
 
 ### Enable watchdog hardware
 
-> **Work in progress**
-> 
-> **TODO:** revisit this section to finish setup
+Prevent catastrophic system hangs by enabling a hardware watchdog module.
 
-Refs:
-* https://github.com/wsular/urbanova-aqnet-rpi-node/tree/master/doc/install
-* https://stackoverflow.com/questions/37144547/setup-issues-using-the-hw-watchdog-with-systemd#46441311
-* https://www.raspberrypi.org/forums/viewtopic.php?f=29&t=147501
-* https://blog.kmp.or.at/watchdog-for-raspberry-pi/
-* https://packages.ubuntu.com/search?suite=all&arch=any&keywords=watchdog
+> As of Nov 2018, there are two good approaches
+> ([read more](https://www.raspberrypi.org/forums/viewtopic.php?p=1373613)): 
+> the *watchdog* package, and the *systemd* service named *watchdog*. Since
+> the *systemd* service is apparently not included in Ubuntu Mate 16.04 LTS,
+> we to use the *watchdog* package.
+> ([More reading](https://www.raspberrypi.org/forums/viewtopic.php?f=29&t=147501))
 
-
-Install and enable the *watchdog* service to prevent system freezes:
-```
-sudo apt install watchdog -y
-```
+First enable hardware support:
 ```
 sudo nano /boot/config.txt
 ```
@@ -179,12 +173,82 @@ sudo nano /boot/config.txt
 -#dtparam=watchdog=off
 +dtparam=watchdog=on
 ```
+```
+sudo reboot
+```
 
-... possibly just use `systemctl enable watchdog`?
+Then install *watchdog* and fix its broken *systemd* service file:
+```
+sudo apt install watchdog -y
+sudo bash -c "cp /lib/systemd/system/watchdog.service /etc/systemd/system/
+> echo 'WantedBy=multi-user.target' >> /etc/systemd/system/watchdog.service"
+```
 
+Next, configure the *watchdog* daemon to prevent system freezes:
+```
+sudo nano /etc/watchdog.conf
+```
+```diff
+ #ping                   = 172.31.14.1
+ #ping                   = 172.26.1.255
+ #interface              = eth0
+ #file                   = /var/log/messages
+ #change                 = 1407
+ 
+ # Uncomment to enable test. Setting one of these values to '0' disables it.
+ # These values will hopefully never reboot your machine during normal use
+ # (if your machine is really hung, the loadavg will go much higher than 25)
+-#max-load-1             = 24
++max-load-1             = 24
+ #max-load-5             = 18
+ #max-load-15            = 12
+ 
+ # Note that this is the number of pages!
+ # To get the real size, check how large the pagesize is on your machine.
+ #min-memory             = 1
+ #allocatable-memory     = 1
+ 
+ #repair-binary          = /usr/sbin/repair
+ #repair-timeout         =
+ #test-binary            =
+ #test-timeout           =
+ 
+-#watchdog-device        = /dev/watchdog
++watchdog-device        = /dev/watchdog
++
++watchdog-timeout = 10
+ 
+ # Defaults compiled into the binary
+ #temperature-device     =
+ #max-temperature        = 120
+ 
+ # Defaults compiled into the binary
+ #admin                  = root
+-#interval               = 1
++interval               = 1
+ #logtick                = 1
+ #log-dir                = /var/log/watchdog
+ 
+ # This greatly decreases the chance that watchdog won't be scheduled before
+ # your machine is really loaded
+ realtime                = yes
+ priority                = 1
+ 
+ # Check if rsyslogd is still running by enabling the following line
+ #pidfile                = /var/run/rsyslogd.pid
+```
 
+And finally, enable and test the service (with a fork bomb):
+```
+sudo systemctl enable watchdog
+sudo systemctl start watchdog
+:(){ :|:& };:
+```
 
-
+..or a NULL pointer dereference:
+```
+echo c > /proc/sysrq-trigger
+```
 
 ---
 
