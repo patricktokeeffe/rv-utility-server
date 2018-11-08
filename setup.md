@@ -13,7 +13,7 @@ power supply on a battery-backed UPS outlet.
 
 ----
 
-## Operating System
+## Operating System Setup
 
 The operating system choice is [Ubuntu Mate](https://ubuntu-mate.org) because
 the Mate desktop is intuitive for our user base. 
@@ -113,11 +113,8 @@ sudo reboot
 
 Also, prevent package updates from re-introducing this error:
 ```
-sudo /etc/default/cups
-```
-```
-# do not load parallel port modules
-LOAD_LP_MODULES=no
+sudo bash -c "echo '# do not load parallel port modules
+LOAD_LP_MODULES=no' > /etc/default/cups"
 ```
 
 ### Fix the *popularity-contest* package
@@ -146,8 +143,11 @@ sudo apt autoremove --purge scratch minecraft-pi thunderbird youtube-dl youtube-
 
 
 
+---
 
+## Server Hardening
 
+Configure the server for reliable and secure operation per this section.
 
 ### Enable watchdog hardware
 
@@ -250,29 +250,15 @@ sudo systemctl start watchdog
 echo c > /proc/sysrq-trigger
 ```
 
----
 
+
+
+
+---
 > *v-- this section put on hold --v*
 
 
-### Boot Options
 
-The server is intended for headless operation so to preserve system resources, 
-have the computer boot into a terminal instead of the graphical desktop. 
-
-> To start the desktop from the command line, run `startx`.
-> 
-> Graphical (virtual) desktops will be automatically be created for VNC users.
-
-Use *raspi-config* to change the default boot type:
-```
-sudo raspi-config
-```
-```
-Boot Options -> Desktop / CLI -> Console Text
-```
-
-Before exiting, trigger the *raspi-config* internal update tool. 
 
 
 ### Enable the firewall
@@ -310,8 +296,26 @@ As other programs get installed, allow them through too:
 > *\^-- on hold --^*
 ---
 
-### Other things to look into:
+## Other things to look into
 
+### Disable automatic desktop login
+
+The server is intended for headless operation so to preserve system resources, 
+have the computer boot into a terminal instead of the graphical desktop. 
+
+> To start the desktop from the command line, run `startx`.
+> 
+> Graphical (virtual) desktops will be automatically be created for VNC users.
+
+Use *raspi-config* to change the default boot type:
+```
+sudo raspi-config
+```
+```
+Boot Options -> Desktop / CLI -> Console Text
+```
+
+Before exiting, trigger the *raspi-config* internal update tool. 
 
 ### Install other useful packages
 
@@ -334,7 +338,7 @@ sudo apt install network-manager-openconnect-gnome -y
 
 ----
 
-## Software
+## Server Software Configuration
 
 Packages are listed in a roughly-recommended order of installation:
 
@@ -820,6 +824,10 @@ Install so the Conext Combox has somewhere to push event log files?
 
 Probably better approach: enable FTP service on NAS unit (Synology DS218?)
 
+
+### Network Time Protocol (*ntpd*)
+
+Probably already installed -> enable stats and configure for local network
 
 
 
