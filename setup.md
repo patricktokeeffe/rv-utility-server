@@ -259,89 +259,7 @@ echo c > /proc/sysrq-trigger
 
 
 
----
-> *v-- this section put on hold --v*
 
-
-
-
-
-### Enable the firewall
-
-Ref: <https://www.digitalocean.com/community/tutorials/how-to-setup-a-firewall-with-ufw-on-an-ubuntu-and-debian-cloud-server> 
-
-Set to manually installed:
-```
-sudo apt install ufw
-```
-
-Then apply some default rules:
-```
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow ssh
-
-```
-
-As other programs get installed, allow them through too:
-
-| Description | Rule |
-|-------------|------|
-| VPN server (*ocserv*)         | `allow https` |
-| email relay (*postfix*)       | `allow smtp`  |
-| VNC server (*tightvncserver*) | 5901/tcp? |
-| network UPS tools (*nut*)     | 3493 |
-
-* probably need to enable 443/udp for *ocserv*?
-
-
-
-
-
-> *\^-- on hold --^*
----
-
-## Other things to look into
-
-### Disable automatic desktop login
-
-The server is intended for headless operation so to preserve system resources, 
-have the computer boot into a terminal instead of the graphical desktop. 
-
-> To start the desktop from the command line, run `startx`.
-> 
-> Graphical (virtual) desktops will be automatically be created for VNC users.
-
-Use *raspi-config* to change the default boot type:
-```
-sudo raspi-config
-```
-```
-Boot Options -> Desktop / CLI -> Console Text
-```
-
-Before exiting, trigger the *raspi-config* internal update tool. 
-
-### Install other useful packages
-
-Add ability to connect back to WSU VPN (Cisco AnyConnect protocol):
-```
-sudo apt install network-manager-openconnect-gnome -y
-```
-
-
-#### Mate "Power Statistics" panel
-
-* observed on this panel: `cannot enable timerstats`
-    * symptoms mirror: https://bugzilla.redhat.com/show_bug.cgi?id=1427621
-        * basically `/proc/timer_stats` is no longer a valid file but *upower*
-          continues to rely on it?
-
-
-
-
-
-----
 
 ## Server Software Configuration
 
@@ -402,16 +320,6 @@ The script above performs the following changes w.r.t. a default installation:
 > * for the VPN (ocserv), the use of DTLS vs. TCP BBR
 
 
-
-
-
-
----
-**<-- future: -->**
-
-----
-
-
 ### Automatic Package Updates (*unattended-upgrades*)
 
 > ***TODO*** *enable email reporting on errors only*
@@ -450,6 +358,118 @@ sudo unattended-upgrade --debug --dry-run
 ```
 
 
+### Email relay (*postfix*)
+
+Install *postfix* and follow prompts from package installer:
+```
+sudo apt install postfix -y
+```
+* Configure as *Satellite* site
+* Use hostname for "system mail name"
+* Specify complete email relay server address (we're using *smtp.gmail.com:587*)
+
+Configure *postfix* for SASL authentication:
+```
+sudo postconf -e 'smtp_use_tls = yes'
+sudo postconf -e 'smtp_sasl_auth_enable = yes'
+sudo postconf -e 'smtp_sasl_password_maps = hash:/etc/postfix/sasl/sasl_password'
+sudo postconf -e 'smtp_sasl_security_options = noanonymous'
+sudo postconf -e 'smtp_sasl_tls_security_options = noanonymous'
+```
+
+Create a new credentials file:
+> *Google/Gmail users: for security sake, use an 
+> [app password](https://support.google.com/accounts/answer/185833?hl=en)
+> instead of your account password!*
+```
+sudo nano /etc/postfix/sasl/sasl_password
+```
+```
+smtp.gmail.com yourusername@gmail.com:password
+```
+
+...and apply appropriate file permissions:
+> *Hint: in this order or you'll receive permission errors due to the asterisk*
+```
+sudo postmap /etc/postfix/sasl/sasl_password
+sudo chmod 640 /etc/postfix/sasl/*
+sudo chmod 750 /etc/postfix/sasl
+sudo chown -R root:postfix /etc/postfix/sasl
+```
+
+Now... (since we're using Gmail) disable IPv6 protocol to prevent mail
+delivery failures [[ref](https://serverfault.com/a/916168/276001)]:
+```
+sudo postconf -e inet_protocols=ipv4
+```
+
+Restart the service and test (*mail* is in *mailutils*):
+```
+sudo systemctl restart postfix
+```
+```
+sudo apt install mailutils -y
+echo "postfix test" | mail -s "test message" myemail@example.com
+```
+
+Next, configure local mail forwarding using `/etc/aliases`
+[[ref](https://unix.stackexchange.com/a/21582/160424)]:
+* forward user *root*'s mail to your user account
+* forward your user account's mail to an external email address
+```
+sudo bash -c "echo '\
+root:   newuser
+newuser: myemail@example.com' >> /etc/aliases"
+sudo newaliases
+```
+
+Test forwarding:
+```
+echo "postfix forward test" | mail -s "test message" myemail@example.com
+```
+
+Finally, configure *postfix* as an open relay on the local area network:
+> *Don't do this if your computer is on an unsecure local area network (such as
+> at a University).*
+1. add the LAN route (ex: 192.168.1.0/24) to the source network list
+2. change listening interface from localhost to all network adapters
+
+> **TODO** *investigate more specific `inet_interfaces` setting... attempting
+> to use `sudo postconf -e 'inet_interfaces = 127.0.0.1, [::1], 192.168.3.2'`
+> produces errors related to the `[::1]` address. Need to remove because IPv4
+> is disabled?*
+
+```
+sudo postconf -e 'mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 192.168.3.0/24'
+sudo postconf -e 'inet_interfaces = all'
+sudo postfix reload
+```
+
+To test the relay:
+* use a different computer on the same LAN subnet to send an email message
+    * on Windows, you can use the command line program [sendEmail](http://caspian.dotconf.net/menu/Software/SendEmail/)
+    * on Linux, you can use the same *mail* program from the *mailutils* package
+* specify the ip address of the *postfix* server computer as the smtp server
+    * do not provide any authentication to the *postfix* server
+    * ensure there are no firewalls in the way
+    * ensure you're on the LAN network specified above (192.168.3.0/24 in our examples)
+
+References:
+* https://help.ubuntu.com/lts/serverguide/postfix.html
+* http://www.postfix.org/postfix.1.html
+* http://www.postfix.org/postconf.5.html
+
+
+
+
+
+---
+**working here**
+
+
+
+
+----
 
 ### VNC Server (*tightvncserver*)
 
@@ -526,98 +546,6 @@ References:
 
 
 
-### Email relay (*postfix*)
-
-Ref: <https://devops.profitbricks.com/tutorials/configure-a-postfix-relay-through-gmail-on-ubuntu/>
-
-Install *postfix* and follow prompts from package installer:
-```
-sudo apt install postfix
-```
-* Configure as *Satellite* site
-* *Just provide hostname for FQDN - revisit later*
-* Specify smtp server (*smtp.gmail.com*)
-
-Enable SASL:
-```
-sudo nano /etc/postfix/main.cf
-```
-```diff
-+smtp_use_tls = yes
-+smtp_sasl_auth_enable = yes
-+smtp_sasl_password_maps = hash:/etc/postfix/sasl/sasl_password
-+smtp_sasl_security_options = noanonymous
-+smtp_sasl_tls_security_options = noanonymous
-```
-
-Create credentials files and secure their file permissions:
-> *For maximum security, you should use an 
-> [app password](https://support.google.com/accounts/answer/185833?hl=en)
-> instead of the account password.*
-```
-sudo nano /etc/postfix/sasl/sasl_password
-```
-```
-smtp.gmail.com yourusername@gmail.com:password
-```
-```
-sudo postmap /etc/postfix/sasl/sasl_password
-sudo chown -R root:postfix /etc/postfix/sasl
-sudo chmod 640 /etc/postfix/sasl/*
-sudo chmod 750 /etc/postfix/sasl
-```
-
-Restart the service and test (*mail* is in *mailutils*):
-```
-sudo systemctl restart postfix
-```
-```
-sudo apt install mailutils -y
-echo "postfix test" | mail -s "test message" myemail@example.com
-```
-
-Now configure *postfix* as an open relay on the local area network. First,
-add the LAN address (ex: 192.168.1.0/24) to the source network list. Then
-enable listening on all interfaces (for simplicity, you could be more specific
-too).
-```
-sudo nano /etc/postfix/main.cf
-```
-```diff
--mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128
-+mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 192.168.1.0/24
-```
-```dif
--inet_interfaces = loopback-only
-+inet_interfaces = all
-```
-
-Finally, configure local mail forwarding using `/etc/aliases`
-[[ref](https://unix.stackexchange.com/a/21582/160424)]:
-```
-sudo nano /etc/aliases
-```
-```diff
- # See man 5 aliases for format
- postmaster:    root
-+root:   myadminuser
-+myadminuser: myemail@example.com
-```
-```
-sudo newaliases
-```
-
-Now test... somehow.
-
-
-* https://blog.dantup.com/2016/04/setting-up-raspberry-pi-raspbian-jessie-to-send-email/
-    * if hangs at start-up
-* https://gist.github.com/dwilkie/41ae0c7acc48186e6058
-    * hints on UFW rules
-* https://www.linuxbabe.com/ubuntu/automatic-security-update-unattended-upgrades-ubuntu-18-04
-
-
-
 ### Network UPS Tools (*nut*)
 
 Install *nut*:
@@ -688,5 +616,91 @@ Probably better approach: enable FTP service on NAS unit (Synology DS218?)
 
 Probably already installed -> enable stats and configure for local network
 
+
+
+
+
+
+---
+> *v-- this section put on hold --v*
+
+
+
+
+
+### Enable the firewall
+
+Ref: <https://www.digitalocean.com/community/tutorials/how-to-setup-a-firewall-with-ufw-on-an-ubuntu-and-debian-cloud-server> 
+
+Set to manually installed:
+```
+sudo apt install ufw
+```
+
+Then apply some default rules:
+```
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow ssh
+
+```
+
+As other programs get installed, allow them through too:
+
+| Description | Rule |
+|-------------|------|
+| VPN server (*ocserv*)         | `allow https` |
+| email relay (*postfix*)       | `allow smtp`  |
+| VNC server (*tightvncserver*) | 5901/tcp? |
+| network UPS tools (*nut*)     | 3493 |
+
+* probably need to enable 443/udp for *ocserv*?
+
+
+
+
+
+---
+
+## Other things to look into
+
+### Disable automatic desktop login
+
+The server is intended for headless operation so to preserve system resources, 
+have the computer boot into a terminal instead of the graphical desktop. 
+
+> To start the desktop from the command line, run `startx`.
+> 
+> Graphical (virtual) desktops will be automatically be created for VNC users.
+
+Use *raspi-config* to change the default boot type:
+```
+sudo raspi-config
+```
+```
+Boot Options -> Desktop / CLI -> Console Text
+```
+
+Before exiting, trigger the *raspi-config* internal update tool. 
+
+### Install other useful packages
+
+Add ability to connect back to WSU VPN (Cisco AnyConnect protocol):
+```
+sudo apt install network-manager-openconnect-gnome -y
+```
+
+#### Fallback static IP on eth0?
+
+Just in case router isn't present and can't assign DHCP reservation?... Give
+unit a static IP so that *postfix* continues to operate?
+
+
+#### Mate "Power Statistics" panel
+
+* observed on this panel: `cannot enable timerstats`
+    * symptoms mirror: https://bugzilla.redhat.com/show_bug.cgi?id=1427621
+        * basically `/proc/timer_stats` is no longer a valid file but *upower*
+          continues to rely on it?
 
 
