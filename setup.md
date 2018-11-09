@@ -144,7 +144,12 @@ to consume bandwidth with potential updates for nothing. Just uninstall them:
 sudo apt autoremove --purge scratch minecraft-pi thunderbird youtube-dl youtube-dlg sonic-pi brasero rhythmbox qjackctl sense-emu-tools pidgin hexchat shotwell cheese synapse plank ubuntu-mate-welcome
 ```
 
+### Install necessary packages
 
+The packages listed below will be necessary, either to setup or operations:
+```
+sudo apt install -y git
+```
 
 
 
@@ -296,145 +301,29 @@ fi
 > *Future work?* <https://github.com/tmux-plugins/tmux-continuum>
 
 
-
-
----
-**<-- work in progress -->**
-
----
-
-
 ### System Monitoring Service (*RPi-Monitor*)
 
-> Very seriously look at disabling the so-called predictable network interface names!
-
-Install *rpimonitor* 
-[[ref](https://xavierberger.github.io/RPi-Monitor-docs/11_installation.html)]:
+Install *RPi-Monitor* using the script in this repository:
 ```
-sudo apt-get install dirmngr
-sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 2C0D3C0F
-sudo wget http://goo.gl/vewCLL -O /etc/apt/sources.list.d/rpimonitor.list
-sudo apt-get update
-sudo apt install rpimonitor -y
+sudo scripts/install_rpimonitor.sh
 ```
 
-Initialize:
-```
-sudo /etc/init.d/rpimonitor update
-```
+The script above performs the following changes w.r.t. a default installation:
+* enables the networking module
+    * automatically identifies correct network interface name and updates conf files
+    * adds networking to status & statistics pages
+* enables the services module
+    * disables not-presently-installed services such as *nginx* and *mysql*
+    * adds to-be-installed services such as *vnc* and *postfix*
+* enables the "Top3" add-on, for identifying cpu-intensive processes
 
-Then fixup the networking configuration:
-```
-sudo nano /etc/rpimonitor/template/network.conf
-```
+> The install script is careful to backup files before making any modifications.
+> There are two sets of backups are made:
+> * upon very first run, default installation files are backed up with a `.bak` suffix
+> * upon every single run including the very first, files are backed up with a
+>   date-stamped suffix (e.g. `.YYYYMMDD_HHMMSS.bak`)
 
-Also enable the *Top3* addon for monitoring processes:
-```
-sudo cp /usr/share/rpimonitor/web/addons/top3/top3.cron /etc/cron.d/top3
-```
-```
-sudo nano /etc/rpimonitor/data.conf
-```
-```diff
- #web.addons.4.name=Custom addons
- #web.addons.4.addons=custom
- #web.addons.4.showTitle=0
- #web.addons.4.url=/addons/custom/custominfo.html
- 
--#web.addons.5.name=Top3
--#web.addons.5.addons=top3
-+web.addons.5.name=Top3
-+web.addons.5.addons=top3
-```
-```
-sudo nano /etc/rpimonitor/template/cpu.conf
-```
-```diff
- web.status.1.content.1.name=CPU
- web.status.1.content.1.icon=cpu.png
- #web.status.1.content.1.line.1="Loads: <b>" + data.load1 + "</b> [1min] - <b>" + data.load5 + "</b> [5min] - <b>" + data.load15 + "$
- web.status.1.content.1.line.1=JustGageBar("Load", "1min", 0, data.load1, data.max_proc, 100, 80)+" "+JustGageBar("Load", "5min", 0,$
- web.status.1.content.1.line.2="CPU frequency: <b>" + data.cpu_frequency + "MHz</b> Voltage: <b>" + data.cpu_voltage + "V</b>"
- web.status.1.content.1.line.3="Scaling governor: <b>" + data.scaling_governor + "</b>"
--#web.status.1.content.1.line.4=InsertHTML("/addons/top3/top3.html")
-+web.status.1.content.1.line.4=InsertHTML("/addons/top3/top3.html")
-```
-
-Enable services status badges on the homepage:
-```
-sudo nano /etc/rpimonitor/data.conf
-```
-```diff
- ...
- include=/etc/rpimonitor/template/version.conf
- include=/etc/rpimonitor/template/uptime.conf
-+include=/etc/rpimonitor/template/services.conf
- include=/etc/rpimonitor/template/cpu.conf
- include=/etc/rpimonitor/template/temperature.conf
- include=/etc/rpimonitor/template/memory.conf
- include=/etc/rpimonitor/template/swap.conf
- include=/etc/rpimonitor/template/sdcard.conf
- include=/etc/rpimonitor/template/network.conf
-```
-```
-sudo nano /etc/rpimonitor/template/services.conf
-```
-```diff
- ...
--dynamic.3.name=http
--dynamic.3.source=netstat -nlt
--dynamic.3.regexp=tcp .*:(80).*LISTEN
--
--dynamic.4.name=https
--dynamic.4.source=netstat -nlt
--dynamic.4.regexp=tcp .*:(443).*LISTEN
--
--dynamic.5.name=mysql
--dynamic.5.source=netstat -nlt
--dynamic.5.regexp=tcp .*:(3306).*LISTEN
-+#dynamic.3.name=http
-+#dynamic.3.source=netstat -nlt
-+#dynamic.3.regexp=tcp .*:(80).*LISTEN
-+
-+#dynamic.4.name=https
-+#dynamic.4.source=netstat -nlt
-+#dynamic.4.regexp=tcp .*:(443).*LISTEN
-+
-+#dynamic.5.name=mysql
-+#dynamic.5.source=netstat -nlt
-+#dynamic.5.regexp=tcp .*:(3306).*LISTEN
-+
-+dynamic.6.name=vpn
-+dynamic.6.source=netstat -nlt
-+dynamic.6.regexp=tcp .*:(443).*LISTEN
-+
-+dynamic.7.name=vnc
-+dynamic.7.source=netstat -nlt
-+dynamic.7.regexp=tcp .*:(5901).*LISTEN
-+
-+dynamic.8.name=vncx11
-+dynamic.8.source=netstat -nlt
-+dynamic.8.regexp=tcp .*:(6001).*LISTEN
-+
-+dynamic.9.name=smtp
-+dynamic.9.source=netstat -nlt
-+dynamic.9.regexp=tcp .*:(25).*LISTEN
-+
-+dynamic.10.name=nut
-+dynamic.10.source=netstat -nlt
-+dynamic.10.regexp=tcp .*:(3493).*LISTEN
-+
-+dynamic.11.name=ftp
-+dynamic.11.source=netstat -nlt
-+dynamic.11.regexp=tcp .*:(21).*LISTEN
-
- web.status.1.content.1.name=Servers
- web.status.1.content.1.icon=daemons.png
--web.status.1.content.1.line.1="<b>ssh</b> : "+Label(data.ssh,"==22","OK","success")+Label(data.ssh,"!=22","KO","danger")+" <b>rpimonitor</b> : "+Label(data.rpimonitor,"==8888","OK","success")+Label(data.rpimonitor,"!=8888","KO","danger")+" <b>nginx http</b> : "+Label(data.http,"==80","OK","success")+Label(data.http,"!=80","KO","danger")+" <b>nginx https</b> : "+Label(data.https,"==443","OK","success")+Label(data.https,"!=443","KO","danger")+" <b>mysql</b> : "+Label(data.mysql,"==3306","OK","success")+Label(data.mysql,"!=3306","KO","danger")
-+#web.status.1.content.1.line.1="<b>ssh</b> : "+Label(data.ssh,"==22","OK","success")+Label(data.ssh,"!=22","KO","danger")+" <b>rpimonitor</b> : "+Label(data.rpimonitor,"==8888","OK","success")+Label(data.rpimonitor,"!=8888","KO","danger")+" <b>nginx http</b> : "+Label(data.http,"==80","OK","success")+Label(data.http,"!=80","KO","danger")+" <b>nginx https</b> : "+Label(data.https,"==443","OK","success")+Label(data.https,"!=443","KO","danger")+" <b>mysql</b> : "+Label(data.mysql,"==3306","OK","success")+Label(data.mysql,"!=3306","KO","danger")
-+web.status.1.content.1.line.1="<b>ssh</b> "+Label(data.ssh,"==22","OK","success")+Label(data.ssh,"!=22","KO","danger")+" | <b>rpimonitor</b> "+Label(data.rpimonitor,"==8888","OK","success")+Label(data.rpimonitor,"!=8888","KO","danger")+" | <b>ocserv vpn</b> "+Label(data.vpn,"==443","OK","success")+Label(data.vpn,"!=443","KO","danger")+" | <b>tightvnc vnc</b> "+Label(data.vnc,"==5901","OK","success")+Label(data.vnc,"!=5901","KO","danger")+" | <b>tightvnc x11</b> "+Label(data.vncx11,"==6001","OK","success")+Label(data.vncx11,"!=6001","KO","danger")
-+web.status.1.content.1.line.2="<b>postfix smtp</b> "+Label(data.smtp,"==25","OK","success")+Label(data.smtp,"!=25","KO","danger")+" | <b>nut-server</b> "+Label(data.nut,"==3493","OK","success")+Label(data.nut,"!=3493","KO","danger")+" | <b>ftp</b> "+Label(data.ftp,"==21","OK","success")+Label(data.ftp,"!=21","KO","danger")
-```
+&nbsp;
 
 > **Performance testing notes**
 >
