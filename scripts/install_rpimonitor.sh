@@ -13,17 +13,17 @@ bak_date=$(date +.%Y%m%d_%H%M%S.bak)
 
 
 # Installation procedure, per instructions
-#echo "Performing complete install procedure..."
-#apt install dirmngr
-#apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 2C0D3C0F
-#wget http://goo.gl/vewCLL -O /etc/apt/sources.list.d/rpimonitor.list
-#apt-get update
-#apt install rpimonitor -y
+echo "Performing complete install procedure..."
+apt install dirmngr
+apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 2C0D3C0F
+wget http://goo.gl/vewCLL -O /etc/apt/sources.list.d/rpimonitor.list
+apt-get update
+apt install rpimonitor -y
 
 
 # Initialize package update list
-#echo "Updating system packages status database..."
-#/etc/init.d/rpimonitor update
+echo "Updating system packages status database..."
+/etc/init.d/rpimonitor update
 
 
 # Configure to monitor network traffic
