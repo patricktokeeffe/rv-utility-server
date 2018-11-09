@@ -414,71 +414,41 @@ The script above performs the following changes w.r.t. a default installation:
 
 ### Automatic Package Updates (*unattended-upgrades*)
 
+> ***TODO*** *enable email reporting on errors only*
+
 Install *unattended-upgrades*:
 ```
 sudo apt install unattended-upgrades
 ```
 
-Verify configuration includes security updates...:
+This repo contains a copy of `/etc/apt/apt.conf.d/50unattended-upgrades` modified to:
+* automatically install security updates
+    * removes unused dependencies automatically (`apt-get autoremove`)
+    * reboot automatically, if required, at 2AM
+* email reports to user *root* ~~(upon error only)~~
+
+Replace the default configuration file with the repository copy:
+
+> *The conf file provided in this repo has a different prefix number (49) so
+> the following commands are safe to execute more than once.*
+
 ```
-sudo nano /etc/apt.conf.d/50unattended-upgrades
-```
-```
-// Automatically upgrade packages from these (origin:archive) pairs
-Unattended-Upgrade::Allowed-Origins {
-        "${distro_id}:${distro_codename}";
-        "${distro_id}:${distro_codename}-security";
-        // Extended Security Maintenance; doesn't necessarily exist for
-        // every release and this system may not have it installed, but if
-        // available, the policy for updates is such that unattended-upgrades
-        // should also install from here by default.
-        "${distro_id}ESM:${distro_codename}";
-//      "${distro_id}:${distro_codename}-updates";
-//      "${distro_id}:${distro_codename}-proposed";
-//      "${distro_id}:${distro_codename}-backports";
-};
+sudo mv /etc/apt/apt.conf.d/50unattended-upgrades /etc/apt/apt.conf.d/50unattended-upgrades.disabled
+sudo cp src/etc/apt/apt.conf.d/49unattended-upgrades /etc/apt/apt.conf.d/
 ```
 
-> 2018-10-30 enabled `-updates` as well as `-security` packages, enabled
-> option for automatic `autoremove`, and enabled automatic reboots @ 2AM
+> As of Ubuntu MATE 16.04.5 LTS, the file `/etc/apt/apt.conf.d/20auto-upgrades`
+> is already correctly configured and does not need modification:
+> ```
+> APT::Periodic::Update-Package-Lists "1";
+> APT::Periodic::Unattended-Upgrade "1";
+> ```
 
-...and that automatic upgrades are enabled:
+Then test it:
 ```
-sudo nano /etc/apt/apt.conf.d/20auto-upgrades
-```
-```
-APT::Periodic::Update-Package-Lists "1";
-APT::Periodic::Unattended-Upgrade "1";
-```
-
-Enable email reports to user "*root*" (messages will be automatically forwarded
-by *postfix* to a monitored email address):
-```
-sudo nano /etc/apt.conf.d/50unattended-upgrades
-```
-```diff
- // Send email to this address for problems or packages upgrades
- // If empty or unset then no email is sent, make sure that you
- // have a working mail setup on your system. A package that provides
- // 'mailx' must be installed. E.g. "user@example.com"
--//Unattended-Upgrade::Mail "root";
-+Unattended-Upgrade::Mail "root";
+sudo unattended-upgrade --debug --dry-run
 ```
 
-After confirming email reports work correctly, optionally change to only report
-errors:
-```
-sudo nano /etc/apt.conf.d/50unattended-upgrades
-```
-```diff
- // Set this value to "true" to get emails only on errors. Default
- // is to always send a mail if Unattended-Upgrade::Mail is set
--//Unattended-Upgrade::MailOnlyOnError "true";
-+Unattended-Upgrade::MailOnlyOnError "true";
-```
-
-References:
-* https://help.ubuntu.com/lts/serverguide/automatic-updates.html
 
 
 ### VNC Server (*tightvncserver*)
