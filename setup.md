@@ -478,6 +478,8 @@ sudo apt install chrony -y
 
 
 > TODO: configure RPi-Monitor for chrony monitoring
+>
+> submitted as PR#243 - new template `src/etc/rpimonitor/template/chrony.conf`
 
 
 **TODO** *configuration as an NTP server*:
