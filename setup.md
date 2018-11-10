@@ -461,10 +461,38 @@ References:
 
 
 
-
-
 ---
 **working here**
+
+### Network Time Protocol (*chrony*)
+
+> In Ubuntu 16.04, the traditional Network Time Protocol (NTP) package *ntpd*
+> is replaced with the *systemd* service *prefer-timesyncd*. This package is a
+> client-only implementation and is intended to be replaced with *chrony* to
+> obtain an NTP server. *chrony* is newer and has some advantages over *ntpd*.
+
+Install *chrony*:
+```
+sudo apt install chrony -y
+```
+
+
+> TODO: configure RPi-Monitor for chrony monitoring
+
+
+**TODO** *configuration as an NTP server*:
+* add `allow` directive to enable service
+* improve statistics tracking: https://www.thegeekdiary.com/how-to-configure-chrony-statistics-in-centos-rhel-7/
+* create service file for RPIMonitor
+    * https://github.com/netdata/netdata/pull/2639/files
+        * Charts created: timediff, lastoffset, rmsoffset, rootdelay,
+          rootdispersion, skew, frequency, residualfreq
+
+Refs: 
+* https://chrony.tuxfamily.org/index.html
+
+
+
 
 
 
