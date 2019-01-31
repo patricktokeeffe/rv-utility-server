@@ -322,8 +322,6 @@ The script above performs the following changes w.r.t. a default installation:
 
 ### Automatic Package Updates (*unattended-upgrades*)
 
-> ***TODO*** *enable email reporting on errors only*
-
 Install *unattended-upgrades*:
 ```
 sudo apt install unattended-upgrades
@@ -333,7 +331,7 @@ This repo contains a copy of `/etc/apt/apt.conf.d/50unattended-upgrades` modifie
 * automatically install security updates
     * removes unused dependencies automatically (`apt-get autoremove`)
     * reboot automatically, if required, at 2AM
-* email reports to user *root* ~~(upon error only)~~
+* email reports to user *root*
 
 Replace the default configuration file with the repository copy:
 
