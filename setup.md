@@ -460,10 +460,6 @@ References:
 * http://www.postfix.org/postconf.5.html
 
 
-
----
-**working here**
-
 ### Network Time Protocol (*chrony*)
 
 > In Ubuntu 16.04, the traditional Network Time Protocol (NTP) package *ntpd*
@@ -471,27 +467,38 @@ References:
 > client-only implementation and is intended to be replaced with *chrony* to
 > obtain an NTP server. *chrony* is newer and has some advantages over *ntpd*.
 
-Install *chrony*:
+The complete write-up for implentation of the NTP time server component
+is beyond the scope of this document. Instead, refer to the instructions
+[described here](https://github.com/patricktokeeffe/rpi-ntp-server) to:
+* integrate GPS receiver hardware
+* configure the *chrony* and *gpsd* services
+* expose the time service to network clients
+* and (**FUTURE**) add a physical clock display
+
+After enabling the device as an NTP-GPS server, manually install the
+[`chrony.conf` file](https://github.com/XavierBerger/RPi-Monitor/raw/develop/src/etc/rpimonitor/template/chrony.conf):
 ```
-sudo apt install chrony -y
+wget https://github.com/XavierBerger/RPi-Monitor/raw/develop/src/etc/rpimonitor/template/chrony.conf
+sudo cp ./chrony.conf /etc/rpimonitor/template/
 ```
 
-
-> TODO: configure RPi-Monitor for chrony monitoring
->
-> submitted as PR#243 - new template `src/etc/rpimonitor/template/chrony.conf`
-
-
-**TODO** *configuration as an NTP server*:
-* add `allow` directive to enable service
-* improve statistics tracking: https://www.thegeekdiary.com/how-to-configure-chrony-statistics-in-centos-rhel-7/
-* create service file for RPIMonitor
-    * https://github.com/netdata/netdata/pull/2639/files
-        * Charts created: timediff, lastoffset, rmsoffset, rootdelay,
-          rootdispersion, skew, frequency, residualfreq
-
-Refs: 
-* https://chrony.tuxfamily.org/index.html
+Then enable statistics monitoring within RPi-Monitor:
+```
+sudo nano /etc/rpimonitor/data.conf
+```
+```diff
+ ...
+ include=/etc/rpimonitor/template/version.conf
+ include=/etc/rpimonitor/template/uptime.conf
+ include=/etc/rpimonitor/template/services.conf
++include=/etc/rpimonitor/template/chrony.conf
+ include=/etc/rpimonitor/template/cpu.conf
+ include=/etc/rpimonitor/template/temperature.conf
+ ...
+```
+```
+sudo systemctl restart rpimonitor.service
+```
 
 
 
