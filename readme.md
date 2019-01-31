@@ -3,6 +3,8 @@
 Basic utility server to support advanced features of the WSU LAR Research Van.
 Core functionality includes:
 
+* **Network Time Protocol (NTP) server**  
+  To provide low-latency, portable time synchronization to compatible devices
 * **Virtual Private Network (VPN) server**  
   To permit remote users access to devices inside the van
 * **Email relay server**  
