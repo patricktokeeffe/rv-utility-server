@@ -460,11 +460,48 @@ References:
 * http://www.postfix.org/postconf.5.html
 
 
+### Network Time Protocol (*chrony*)
+
+> In Ubuntu 16.04, the traditional Network Time Protocol (NTP) package *ntpd*
+> is replaced with the *systemd* service *prefer-timesyncd*. This package is a
+> client-only implementation and is intended to be replaced with *chrony* to
+> obtain an NTP server. *chrony* is newer and has some advantages over *ntpd*.
+
+The complete write-up for implentation of the NTP time server component
+is beyond the scope of this document. Instead, refer to the instructions
+[described here](https://github.com/patricktokeeffe/rpi-ntp-server) to:
+* integrate GPS receiver hardware
+* configure the *chrony* and *gpsd* services
+* expose the time service to network clients
+* and (**FUTURE**) add a physical clock display
+
+After enabling the device as an NTP-GPS server, manually install the
+[`chrony.conf` file](https://github.com/XavierBerger/RPi-Monitor/raw/develop/src/etc/rpimonitor/template/chrony.conf):
+```
+wget https://github.com/XavierBerger/RPi-Monitor/raw/develop/src/etc/rpimonitor/template/chrony.conf
+sudo cp ./chrony.conf /etc/rpimonitor/template/
+```
+
+Then enable statistics monitoring within RPi-Monitor:
+```
+sudo nano /etc/rpimonitor/data.conf
+```
+```diff
+ ...
+ include=/etc/rpimonitor/template/version.conf
+ include=/etc/rpimonitor/template/uptime.conf
+ include=/etc/rpimonitor/template/services.conf
++include=/etc/rpimonitor/template/chrony.conf
+ include=/etc/rpimonitor/template/cpu.conf
+ include=/etc/rpimonitor/template/temperature.conf
+ ...
+```
+```
+sudo systemctl restart rpimonitor.service
+```
 
 
 
----
-**working here**
 
 
 
