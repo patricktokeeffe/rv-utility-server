@@ -128,7 +128,6 @@ in Ubuntu 16.04 LTS. To fix, re-run the package configuration:
 ```
 sudo dpkg-reconfigure popularity-contest
 ```
-
 ### Remove unnecessary packages
 
 These packages won't be useful to support the Research Van, and we don't want
@@ -499,11 +498,278 @@ sudo systemctl restart rpimonitor.service
 ```
 
 
+### VPN Server (*ocserv*)
+
+First, create a normal (non-admin) user to act as the VPN account:
+```
+sudo adduser vpn
+```
+
+Install *ocserv*:
+```
+sudo apt install ocserv -y
+```
+
+#### Generate SSL certificate
+
+A self-signed one is perfectly fine, it just results in security
+warnings (as it should). ([Reference](https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04)):
+```
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/ocserv-selfsigned.key -out /etc/ssl/certs/ocserv-selfsigned.pem
+```
+
+Of course, a professional installation requires a domain name
+and "real" SSL certificate. Getting a domain name is beyond this
+document, but getting a free SSL certificate from [Let's Encrypt](https://letsencrypt.org/)
+is done as follows.
+
+First, add the [Certbot](https://certbot.eff.org/) repository:
+```
+sudo apt-get update
+sudo apt-get install software-properties-common
+sudo add-apt-repository universe
+sudo add-apt-repository ppa:certbot/certbot
+```
+Press <kbd>enter</kbd> to confirm, then install *certbot*:
+```
+sudo apt-get update && sudo apt-get install certbot -y
+```
+
+Next, request a certificate using the standalone plugin.
+Before proceeding, ensure any firewalls have port 80 open
+and port forwarding rules exist, if needed. To avoid stopping
+the VPN service, an http challenge is requested.
+```
+sudo certbot certonly --standalone vpn.example.com --preferred-challenges http --agree-tos --email your@address.com
+```
+
+> In the futuure, if RPi-Monitor or another web server is
+> exposed on :80 or :443, these directions will probably
+> need to adapt to using *haproxy* or similar.
+
+Test automatic renewal. By default, *certbot* installs a 
+crontab entry that renews certificates before expiration.
+```
+sudo certbot renew --dry-run
+```
+
+#### Edit the configuration file 
+
+As follows. ([Reference](https://www.linuxbabe.com/ubuntu/openconnect-vpn-server-ocserv-ubuntu-16-04-17-10-lets-encrypt)):
+```
+sudo nano /etc/ocserv/ocserv.conf
+```
+
+Specify the location of the new SSL certificate:
+```diff
+-server-cert = /etc/ssl/certs/ssl-cert-snakeoil.pem
+-server-key = /etc/ssl/private/ssl-cert-snakeoil.key
++server-cert = /etc/letsencrypt/live/servername/fullchain.pem
++server-key = /etc/letsencrypt/live/servername/privkey.pem
+```
+
+Increase the number of identical clients, since all users will
+share a single account login:
+```diff
+-max-same-clients = 2
++max-same-clients = 16
+```
+
+Enable MTU discovery to optimize VPN performance:
+```diff
+-try-mtu-discovery = false
++try-mtu-discovery = true
+```
+
+Update the value for `default-domain`. Since we do not have a domain
+name, we simply provided the public IP address.
+```diff
+-default-domain = example.com
++default-domain = your.domain.com
+```
+
+The van uses the network range 192.168.**3**.0/24 to avoid clashing 
+with popular home network ranges (i.e. 192.168.1.x). The router is 
+192.168.3.1 and it assigns DHCP addresses in the .100-249 range. 
+Static leases are assigned in the .2-30 range but that range may
+increase in size so a good range for VPN clients would be .64-96 
+(=192.168.3.64/27). 
+```diff
+-ipv4-network = 192.168.1.0
+-ipv4-netmask = 255.255.255.0
++
++# 32 hosts: 192.168.3.64 - .95
++ipv4-network = 192.168.3.64/27
+```
+
+Specify the router as the DNS server:
+```diff
+-dns = 192.168.1.2
++dns = 192.168.3.1
+```
+
+It is not necessary to tunnel all DNS traffic through the VPN. 
+Doing so produces extra network traffic, which generally wastes
+resources. Do *not* uncomment the `tunnel-all-dns = true` line.
+
+Enable `ping-leases` as additional safety precaution against
+address collision (e.g. sloppy static IP assignment or changes
+to router DHCP range):
+```diff
+-ping-leases = false
++ping-leases = true
+```
+
+Add the specific routes to the van network and the modem, instead
+of acting as the default gateway. This configuration limits 
+unnecessary traffic (=data usage & power) from VPN clients.
+```diff
+-route = 10.10.10.0/255.255.255.0
+-route = 192.168.0.0/255.255.0.0
+-#route = fef4:db8:1000:1001::/64
+-#route = default
++route = 192.168.3.0/24
++route = 192.168.13.31/32
+
+ # Subsets of the routes above that will not be routed by
+ # the server.
+
+-no-route = 192.168.5.0/255.255.255.0
++#no-route = 192.168.5.0/255.255.255.0
+```
+
+Save changes to `/etc/ocserv/ocserv.conf` and restart *ocserv*:
+```
+sudo systemctl restart ocserv.service
+```
+
+#### Fix DTLS Handshake Failure
+
+Next, disable the "ocserv.socket" service to prevent DTLS failures
+([ref](https://www.linuxbabe.com/ubuntu/openconnect-vpn-server-ocserv-ubuntu-16-04-17-10-lets-encrypt)):
+
+```
+sudo cp lib/systemd/system/ocserv.service /etc/systemd/system/
+sudo nano /etc/systemd/system/ocserv.service
+```
+```diff
+ [Unit]
+ Description=OpenConnect SSL VPN server
+ Documentation=man:ocserv(8)
+ After=network-online.target
+-Requires=ocserv.socket
+ 
+ [Service]
+ PrivateTmp=true
+ PIDFile=/var/run/ocserv.pid
+ ExecStart=/usr/sbin/ocserv --foreground --pid-file /var/run/ocserv.pid --config /etc/ocserv/ocserv.conf
+ ExecReload=/bin/kill -HUP $MAINPID
+ Restart=always
+ RestartSec=1
+ 
+ [Install]
+ WantedBy=multi-user.target
+-Also=ocserv.socket
+```
+```
+sudo systemctl daemon-reload
+sudo systemctl stop ocserv.socket
+sudo systemctl mask ocserv.socket
+sudo systemctl restart ocserv.service
+```
+
+Here we used `mask` instead of `disable` to ensure that
+*ocserv.socket* cannot be started *even if listed as a
+dependency by another service*. (Though, admittedly, I did
+this to obtain tab completion on `sudo systemctl restart oc<TAB>`.)
+
+> If you still observe "DTLS handshake failed" errors on
+> VPN clients after this procedure, one likely explanation
+> is that UDP traffic is still enabled in
+> `/etc/ocserv/ocserv.conf`, but it is being blocked by
+> a firewall or missing port forward rule.
+
+#### Configure packet routing
+
+Instead of modifying `/etc/sysctl.conf` for this section,
+put configuration changes in a new file:
+```
+sudo nano /etc/sysctl.d/30-ocserv-rules.conf
+```
+
+First, permit the VPN server to route packets between clients
+and the Internet by enabling **IP Forwarding**:
+```diff
++net.ipv4.ip_forward=1
+```
+
+Next, allow VPN and LAN to overlap IP address ranges by enabling
+**Proxy ARP** ([reference](http://ocserv.gitlab.io/www/recipes-ocserv-pseudo-bridge.html)).
+```diff
+ net.ipv4.ip_forward=1
++net.ipv4.conf.all.proxy_arp=1
+```
+
+Save changes and make effective:
+```
+sudo sysctl -p /etc/sysctl.d/30-ocserv-rules.conf
+```
+
+#### Configure firewall routing
+
+Finally, link the VPN to the network and Internet by enabling IP masquerading.
+First determine the network interface name - it probably starts with `en`:
+```
+$ basename -a /sys/class/net/*
+enxb827eb6e32c9
+lo
+vpns0
+wlan0
+```
+
+Then issue the following *iptables* command, with the
+interface name specifed for parameter `-o`:
+```
+sudo iptables -t nat -A POSTROUTING -o enxb827eb6e32c9 -j MASQUERADE
+```
+
+To make this update permanent, install *iptables-persistant*:
+* when prompted, choose **Yes** save IPv4 rules
+* when prompted, choose **Yes** save IPv6 rules
+```
+sudo apt install iptables-persistent -y
+```
+
+#### Future work?
+
+possibly open port 443 in iptables?
+```
+sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+sudo iptables -I INPUT -p udp --dport 443 -j ACCEPT
+````
+
+possibly use UFW rules to do things?
+* UFW before.rules for IP masquerading instead of `iptables` commands?
+* need to enable forwarding in UFW version of sysctl (overrides somehow?)
+* http://manpages.ubuntu.com/manpages/precise/en/man8/ufw-framework.8.html
+* hints for ufw? https://gist.github.com/luginbash/52e745ab46cdf46b9061
+
+enable TCP BBR congestion control? [reference](https://www.linuxbabe.com/ubuntu/enable-google-tcp-bbr-ubuntu)
+```
+...
+ # TCP and UDP port number
+ tcp-port = 443
+-udp-port = 443
++#udp-port = 443
+```
 
 
 
 
 
+
+
+**working here**
 ----
 
 ### VNC Server (*tightvncserver*)
@@ -572,13 +838,6 @@ sudo systemctl status vncserver@1
 
 References:
 * <https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-vnc-on-ubuntu-18-04>
-
-
-### VPN Server (*ocserv*)
-
-
-> ***TODO***
-
 
 
 ### Network UPS Tools (*nut*)
