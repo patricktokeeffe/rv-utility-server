@@ -498,11 +498,243 @@ sudo systemctl restart rpimonitor.service
 ```
 
 
+### VPN Server (*ocserv*)
+
+First, create a normal (non-admin) user to act as the VPN account:
+```
+sudo adduser vpn
+```
+
+Install *ocserv*:
+```
+sudo apt install ocserv -y
+```
+
+#### Generate SSL certificate
+
+A self-signed one is perfectly fine, it just results in security
+warnings (as it should). ([Reference](https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04)):
+```
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/ocserv-selfsigned.key -out /etc/ssl/certs/ocserv-selfsigned.pem
+```
+
+#### Edit the configuration file 
+
+As follows. ([Reference](https://www.linuxbabe.com/ubuntu/openconnect-vpn-server-ocserv-ubuntu-16-04-17-10-lets-encrypt)):
+```
+sudo nano /etc/ocserv/ocserv.conf
+```
+
+Specify the location of the new SSL certificate:
+```diff
+-server-cert = /etc/ssl/certs/ssl-cert-snakeoil.pem
+-server-key = /etc/ssl/private/ssl-cert-snakeoil.key
++server-cert = /etc/ssl/certs/ocserv-selfsigned.pem
++server-key = /etc/ssl/private/ocserv-selfsigned.key
+```
+
+Increase the number of identical clients, since all users will
+share a single account login:
+```diff
+-max-same-clients = 2
++max-same-clients = 16
+```
+
+Enable MTU discovery to optimize VPN performance:
+```diff
+-try-mtu-discovery = false
++try-mtu-discovery = true
+```
+
+Update the value for `default-domain`. Since we do not have a domain
+name, we simply provided the public IP address.
+```diff
+-default-domain = example.com
++default-domain = putsomethingelsehere
+```
+
+The van uses the network range 192.168.**3**.0/24 to avoid clashing 
+with popular home network ranges (i.e. 192.168.1.x). The router is 
+192.168.3.1 and it assigns DHCP addresses in the .100-249 range. 
+Static leases are assigned in the .2-30 range but that range may
+increase in size so a good range for VPN clients would be .64-96 
+(=192.168.3.64/27). 
+```diff
+-ipv4-network = 192.168.1.0
+-ipv4-netmask = 255.255.255.0
++
++# 32 hosts: 192.168.3.64 - .95
++ipv4-network = 192.168.3.64/27
+```
+
+Specify the router as the DNS server:
+```diff
+-dns = 192.168.1.2
++dns = 192.168.3.1
+```
+
+It is not necessary to tunnel all DNS traffic through the VPN. 
+Doing so produces extra network traffic, which generally wastes
+resources. Do *not* uncomment the `tunnel-all-dns = true` line.
+
+Enable `ping-leases` as additional safety precaution against
+address collision (e.g. sloppy static IP assignment or changes
+to router DHCP range):
+```diff
+-ping-leases = false
++ping-leases = true
+```
+
+Add the specific routes to the van network and the modem, instead
+of acting as the default gateway. This configuration limits 
+unnecessary traffic (=data usage & power) from VPN clients.
+```diff
+-route = 10.10.10.0/255.255.255.0
+-route = 192.168.0.0/255.255.0.0
+-#route = fef4:db8:1000:1001::/64
+-#route = default
++route = 192.168.3.0/24
++route = 192.168.13.31/32
+
+ # Subsets of the routes above that will not be routed by
+ # the server.
+
+-no-route = 192.168.5.0/255.255.255.0
++#no-route = 192.168.5.0/255.255.255.0
+```
+
+Save changes to `/etc/ocserv/ocserv.conf` and restart *ocserv*:
+```
+sudo systemctl restart ocserv.service
+```
+
+#### Fix DTLS Handshake Failure
+
+Next, disable the "ocserv.socket" service to prevent DTLS failures
+([ref](https://www.linuxbabe.com/ubuntu/openconnect-vpn-server-ocserv-ubuntu-16-04-17-10-lets-encrypt)):
+
+```
+sudo cp lib/systemd/system/ocserv.service /etc/systemd/system/
+sudo nano /etc/systemd/system/ocserv.service
+```
+```diff
+ [Unit]
+ Description=OpenConnect SSL VPN server
+ Documentation=man:ocserv(8)
+ After=network-online.target
+-Requires=ocserv.socket
+ 
+ [Service]
+ PrivateTmp=true
+ PIDFile=/var/run/ocserv.pid
+ ExecStart=/usr/sbin/ocserv --foreground --pid-file /var/run/ocserv.pid --config /etc/ocserv/ocserv.conf
+ ExecReload=/bin/kill -HUP $MAINPID
+ Restart=always
+ RestartSec=1
+ 
+ [Install]
+ WantedBy=multi-user.target
+-Also=ocserv.socket
+```
+```
+sudo systemctl daemon-reload
+sudo systemctl stop ocserv.socket
+sudo systemctl mask ocserv.socket
+sudo systemctl restart ocserv.service
+```
+
+Here we used `mask` instead of `disable` to ensure that
+*ocserv.socket* cannot be started *even if listed as a
+dependency by another service*. (Though, admittedly, I did
+this to obtain tab completion on `sudo systemctl restart oc<TAB>`.)
+
+> If you still observe "DTLS handshake failed" errors on
+> VPN clients after this procedure, one likely explanation
+> is that UDP traffic is still enabled in
+> `/etc/ocserv/ocserv.conf`, but it is being blocked by
+> a firewall or missing port forward rule.
+
+#### Configure packet routing
+
+Instead of modifying `/etc/sysctl.conf` for this section,
+put configuration changes in a new file:
+```
+sudo nano /etc/sysctl.d/30-ocserv-rules.conf
+```
+
+First, permit the VPN server to route packets between clients
+and the Internet by enabling **IP Forwarding**:
+```diff
++net.ipv4.ip_forward=1
+```
+
+Next, allow VPN and LAN to overlap IP address ranges by enabling
+**Proxy ARP** ([reference](http://ocserv.gitlab.io/www/recipes-ocserv-pseudo-bridge.html)).
+```diff
+ net.ipv4.ip_forward=1
++net.ipv4.conf.all.proxy_arp=1
+```
+
+Save changes and make effective:
+```
+sudo sysctl -p /etc/sysctl.d/30-ocserv-rules.conf
+```
+
+#### Configure firewall routing
+
+Finally, link the VPN to the network and Internet by enabling IP masquerading.
+First determine the network interface name - it probably starts with `en`:
+```
+$ basename -a /sys/class/net/*
+enxb827eb6e32c9
+lo
+vpns0
+wlan0
+```
+
+Then issue the following *iptables* command, with the
+interface name specifed for parameter `-o`:
+```
+sudo iptables -t nat -A POSTROUTING -o enxb827eb6e32c9 -j MASQUERADE
+```
+
+To make this update permanent, install *iptables-persistant*:
+* when prompted, choose **Yes** save IPv4 rules
+* when prompted, choose **Yes** save IPv6 rules
+```
+sudo apt install iptables-persistent -y
+```
+
+#### Future work?
+
+possibly open port 443 in iptables?
+```
+sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
+sudo iptables -I INPUT -p udp --dport 443 -j ACCEPT
+````
+
+possibly use UFW rules to do things?
+* UFW before.rules for IP masquerading instead of `iptables` commands?
+* need to enable forwarding in UFW version of sysctl (overrides somehow?)
+* http://manpages.ubuntu.com/manpages/precise/en/man8/ufw-framework.8.html
+* hints for ufw? https://gist.github.com/luginbash/52e745ab46cdf46b9061
+
+enable TCP BBR congestion control? [reference](https://www.linuxbabe.com/ubuntu/enable-google-tcp-bbr-ubuntu)
+```
+...
+ # TCP and UDP port number
+ tcp-port = 443
+-udp-port = 443
++#udp-port = 443
+```
 
 
 
 
 
+
+
+**working here**
 ----
 
 ### VNC Server (*tightvncserver*)
@@ -571,216 +803,6 @@ sudo systemctl status vncserver@1
 
 References:
 * <https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-vnc-on-ubuntu-18-04>
-
-
-### VPN Server (*ocserv*)
-
-First, create another local user account to use for the VPN login (instead of 
-the administrator account).
-
-Install *ocserv*:
-```
-sudo apt install ocserv
-```
-
-Generate a self-signed certificate (for now)
-[[ref](https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-ubuntu-16-04)]:
-```
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/ocserv-selfsigned.key -out /etc/ssl/certs/ocserv-selfsigned.pem
-```
-
-Edit the configuration file 
-[[ref](https://www.linuxbabe.com/ubuntu/openconnect-vpn-server-ocserv-ubuntu-16-04-17-10-lets-encrypt)]:
-* The van network will be 192.168.**3**.0/24 to avoid clashing with popular 
-  home network ranges.
-    * Router is 192.168.3.1 
-    * DHCP addresses occur in the .100-150 range (could be expanded)
-    * DHCP reservations occur from .2 upwards
-    * A good range for VPN clients would be .64-96 (=192.168.3.64/27)
-* A single login will be shared by a small team so increase the number of same
-  clients (`max-same-clients`) that can connect at once.
-
-> *If you don't specify a smaller network than the local subnet, then the VPN
-> server will automatically claim the first address (e.g. 192.168.3.1) for its
-> own. If the network's router happens to have the same address, the router
-> will no longer be reachable from the VPN (though other clients will be).*
-```
-sudo nano /etc/ocserv/ocserv.conf
-```
-```diff
-...
-
- # There may be multiple server-cert and server-key directives,
- # but each key should correspond to the preceding certificate.
--server-cert = /etc/ssl/certs/ssl-cert-snakeoil.pem
--server-key = /etc/ssl/private/ssl-cert-snakeoil.key
-+server-cert = /etc/ssl/certs/ocserv-selfsigned.pem
-+server-key = /etc/ssl/private/ocserv-selfsigned.key
-
-...
-
- # Limit the number of identical clients (i.e., users connecting
- # multiple times). Unset or set to zero for unlimited.
--max-same-clients = 2
-+max-same-clients = 16
-
-...
-
- # MTU discovery (DPD must be enabled)
--try-mtu-discovery = false
-+try-mtu-discovery = true
-
-...
-
- # The default domain to be advertised
--default-domain = example.com
-+default-domain = putsomethingelsehere
-
-...
-
- # enable proxy arp in the LAN interface (see http://infradead.org/ocserv/recipes-ocserv-pseudo-bridge.html);
- # in that case it is recommended to set ping-leases to true.
--ipv4-network = 192.168.1.0
--ipv4-netmask = 255.255.255.0
-+#ipv4-network = 192.168.1.0
-+#ipv4-netmask = 255.255.255.0
-+
-+# 32 hosts: 192.168.3.64 - .95
-+ipv4-network = 192.168.3.64/27
-
-
-...
-
- # The advertized DNS server. Use multiple lines for
- # multiple servers.
- # dns = fc00::4be0
--dns = 192.168.1.2
-+dns = 192.168.3.1
-
-...
-
- # Prior to leasing any IP from the pool ping it to verify that
- # it is not in use by another (unrelated to this server) host.
- # Only set to true, if there can be occupied addresses in the
- # IP range for leases.
--ping-leases = false
-+ping-leases = true
-
-...
-
- # To set the server as the default gateway for the client just
- # comment out all routes from the server, or use the special keyword
- # 'default'.
-
--route = 10.10.10.0/255.255.255.0
--route = 192.168.0.0/255.255.0.0
-+#route = 10.10.10.0/255.255.255.0
-+#route = 192.168.0.0/255.255.0.0
- #route = fef4:db8:1000:1001::/64
- #route = default
-+route = 192.168.3.0/24
-+route = 192.168.13.31/32
-
- # Subsets of the routes above that will not be routed by
- # the server.
-
--no-route = 192.168.5.0/255.255.255.0
-+#no-route = 192.168.5.0/255.255.255.0
-
-...
-```
-
-Enable IP forwarding, save the file, then apply changes:
-```
-sudo nano /etc/sysctl.d/30-ocserv-rules.conf
-```
-```
-net.ipv4.ip_forward=1
-```
-```
-sudo sysctl --system
-```
-
-The VPN can be tested after enabling IP masquerading. Determine the network
-interface name (e.g. `eth0`) then use *iptables* (will take effect until next
-reboot):
-> *Later, we'll use the firewall for a permanent solution.*
-```
-sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-```
-
-> 2018-10-30 IP masquerading isn't required provided we only route local
-> network traffic. If *ocserv* is configured as the default route (explicitly
-> or by not declaring any routes), then VPN users will be unable to access the
-> internet without IP masquerading enabled. 
-
-
-* notes
-    * will also need to enable forwarding in UFW version of sysctl (overrides somehow?)
-    * can use UFW before.rules for IP masquerading instead of `iptables` commands
-    * http://manpages.ubuntu.com/manpages/precise/en/man8/ufw-framework.8.html
-    * 
-
-
-
-
-Disable corresponding "socket" service to prevent DTLS failures
-[[ref](https://www.linuxbabe.com/ubuntu/openconnect-vpn-server-ocserv-ubuntu-16-04-17-10-lets-encrypt)]:
-```
-sudo cp lib/systemd/system/ocserv.service /etc/systemd/system/
-sudo nano /etc/systemd/system/ocserv.service
-```
-```
- [Unit]
- Description=OpenConnect SSL VPN server
- Documentation=man:ocserv(8)
- After=network-online.target
--Requires=ocserv.socket
-+#Requires=ocserv.socket
- 
- [Service]
- PrivateTmp=true
- PIDFile=/var/run/ocserv.pid
- ExecStart=/usr/sbin/ocserv --foreground --pid-file /var/run/ocserv.pid --config /etc/ocserv/ocserv.conf
- ExecReload=/bin/kill -HUP $MAINPID
- Restart=always
- RestartSec=1
- 
- [Install]
- WantedBy=multi-user.target
--Also=ocserv.socket
-+#Also=ocserv.socket
-```
-
-Enable "Proxy ARP" on interfaces so VPN client network can exist on current
-router subnet
-[[ref](https://www.infradead.org/ocserv/recipes-ocserv-pseudo-bridge.html)]:
-```
-sudo nano /etc/sysctl.d/30-ocserv-rules.conf
-```
-```
-net.ipv4.conf.all.proxy_arp=1
-```
-```
-sudo sysctl --system
-```
-
-
-TODO: finally, enable TCP BBR congestion control
-```
-...
- # TCP and UDP port number
- tcp-port = 443
--udp-port = 443
-+#udp-port = 443
-```
-
-
-> ***TODO***
-
-* hints for ufw?  
-  https://gist.github.com/luginbash/52e745ab46cdf46b9061
-
 
 
 ### Network UPS Tools (*nut*)
