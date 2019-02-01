@@ -354,6 +354,14 @@ Then test it:
 sudo unattended-upgrade --debug --dry-run
 ```
 
+#### Disable OS Update Advertisements
+
+By default, Ubuntu announces new OS releases and they will appear as daily
+emails. To disable this, delete the relevant cron file:
+```
+sudo rm /etc/cron.weekly/update-notifier-common
+```
+
 
 ### Email relay (*postfix*)
 
