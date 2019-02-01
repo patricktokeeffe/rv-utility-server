@@ -7,7 +7,7 @@ Core functionality includes:
   To provide low-latency, portable time synchronization to compatible devices
 * **Virtual Private Network (VPN) server**  
   To permit remote users access to devices inside the van
-* **Email relay server**  
+* **Email relay (SMTP) server**  
   To securely send emails from devices and software inside the van
 * **Network UPS Tools (NUT) server**  
   To share uninterruptible power supply (UPS) status with networked devices
