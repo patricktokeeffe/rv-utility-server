@@ -518,6 +518,41 @@ warnings (as it should). ([Reference](https://www.digitalocean.com/community/tut
 sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/ocserv-selfsigned.key -out /etc/ssl/certs/ocserv-selfsigned.pem
 ```
 
+Of course, a professional installation requires a domain name
+and "real" SSL certificate. Getting a domain name is beyond this
+document, but getting a free SSL certificate from [Let's Encrypt](https://letsencrypt.org/)
+is done as follows.
+
+First, add the [Certbot](https://certbot.eff.org/) repository:
+```
+sudo apt-get update
+sudo apt-get install software-properties-common
+sudo add-apt-repository universe
+sudo add-apt-repository ppa:certbot/certbot
+```
+Press <kbd>enter</kbd> to confirm, then install *certbot*:
+```
+sudo apt-get update && sudo apt-get install certbot -y
+```
+
+Next, request a certificate using the standalone plugin.
+Before proceeding, ensure any firewalls have port 80 open
+and port forwarding rules exist, if needed. To avoid stopping
+the VPN service, an http challenge is requested.
+```
+sudo certbot certonly --standalone vpn.example.com --preferred-challenges http --agree-tos --email your@address.com
+```
+
+> In the futuure, if RPi-Monitor or another web server is
+> exposed on :80 or :443, these directions will probably
+> need to adapt to using *haproxy* or similar.
+
+Test automatic renewal. By default, *certbot* installs a 
+crontab entry that renews certificates before expiration.
+```
+sudo certbot renew --dry-run
+```
+
 #### Edit the configuration file 
 
 As follows. ([Reference](https://www.linuxbabe.com/ubuntu/openconnect-vpn-server-ocserv-ubuntu-16-04-17-10-lets-encrypt)):
@@ -529,8 +564,8 @@ Specify the location of the new SSL certificate:
 ```diff
 -server-cert = /etc/ssl/certs/ssl-cert-snakeoil.pem
 -server-key = /etc/ssl/private/ssl-cert-snakeoil.key
-+server-cert = /etc/ssl/certs/ocserv-selfsigned.pem
-+server-key = /etc/ssl/private/ocserv-selfsigned.key
++server-cert = /etc/letsencrypt/live/servername/fullchain.pem
++server-key = /etc/letsencrypt/live/servername/privkey.pem
 ```
 
 Increase the number of identical clients, since all users will
@@ -550,7 +585,7 @@ Update the value for `default-domain`. Since we do not have a domain
 name, we simply provided the public IP address.
 ```diff
 -default-domain = example.com
-+default-domain = putsomethingelsehere
++default-domain = your.domain.com
 ```
 
 The van uses the network range 192.168.**3**.0/24 to avoid clashing 
