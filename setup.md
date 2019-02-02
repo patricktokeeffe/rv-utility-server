@@ -548,7 +548,7 @@ Before proceeding, ensure any firewalls have port 80 open
 and port forwarding rules exist, if needed. To avoid stopping
 the VPN service, an http challenge is requested.
 ```
-sudo certbot certonly --standalone vpn.example.com --preferred-challenges http --agree-tos --email your@address.com
+sudo certbot certonly --standalone -d vpn.example.com --preferred-challenges http --agree-tos --email your@address.com
 ```
 
 > In the futuure, if RPi-Monitor or another web server is
