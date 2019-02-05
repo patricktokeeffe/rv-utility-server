@@ -128,6 +128,20 @@ in Ubuntu 16.04 LTS. To fix, re-run the package configuration:
 ```
 sudo dpkg-reconfigure popularity-contest
 ```
+
+### Fix the *systemd* journal flush service
+
+To prevent prolonged reboot times, fix the logging service to start
+later in the boot process ([[ref](https://askubuntu.com/questions/1094389/what-is-the-use-of-systemd-journal-flush-service)]):
+```
+sudo cp /lib/systemd/system/systemd-journal-flush.service /etc/systemd/system/
+sudo nano /etc/systemd/system/
+```
+```diff
+-Before=systemd-user-sessions.service systemd-tmpfiles-setup.service
++Before=systemd-tmpfiles-setup.service
+```
+
 ### Remove unnecessary packages
 
 These packages won't be useful to support the Research Van, and we don't want
