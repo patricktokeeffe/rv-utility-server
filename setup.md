@@ -732,6 +732,23 @@ Save changes to `/etc/ocserv/ocserv.conf` and restart *ocserv*:
 sudo systemctl restart ocserv.service
 ```
 
+#### Restart the service automatically
+
+Edit the *systemd* service file so if the VPN dies, it will
+be restarted automatically:
+```
+sudo nano /etc/systemd/system/ocserv.service
+```
+```diff
+ [Service]
+ PrivateTmp=true
+ PIDFile=/var/run/ocserv.pid
+ ExecStart=/usr/sbin/ocserv --foreground --pid-file /var/run/ocserv.pid --config /etc/ocserv/ocserv.conf
+ ExecReload=/bin/kill -HUP $MAINPID
++Restart=always
++RestartSec=2
+```
+
 #### Create AnyConnect profile file
 
 For compatibility with Cisco clients, create a profile file in
