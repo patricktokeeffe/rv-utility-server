@@ -72,11 +72,17 @@ sudo nano /etc/ssh/sshd_config
 sudo systemctl restart ssh.service
 ```
 
-### Enable persistent system logs
+### Enable system logging
 
-Ensure *systemd* keeps logs after reboots by creating log directory:
+Store log files to memory to permit troubleshooting
+without filling up storage or stalling reboots:
 ```
-sudo mkdir -p /var/log/journal
+sudo nano /etc/systemd/journald.conf
+```
+```diff
+ [Journal]
+-#Storage=auto
++Storage=volatile
 ```
 
 ### Fix the *firefox* package
@@ -128,6 +134,16 @@ in Ubuntu 16.04 LTS. To fix, re-run the package configuration:
 ```
 sudo dpkg-reconfigure popularity-contest
 ```
+
+### Add a fake hardware clock
+
+Even though a GPS will be added later for a genuine time source, the
+computer will still boot up with the incorrect time. Install a fake
+hardware clock to fix this:
+```
+sudo apt install fake-hwclock -y
+```
+
 ### Remove unnecessary packages
 
 These packages won't be useful to support the Research Van, and we don't want
@@ -154,12 +170,37 @@ Boot Options -> Splash Screen -> No
 
 Before exiting, also run the *raspi-config* internal update tool.
 
+### Disable built-in Bluetooth and WiFi
+
+This project does not require built-in Bluetooth or WiFi and we can lower
+resource consumption by disabling them:
+```
+sudo nano /boot/config.txt
+```
+```diff
+ ...
++# Disable built-in Bluetooth and WiFi
++dtoverlay=pi3-disable-bt
++dtoverlay=pi3-disable-wifi
+```
+
+Also disable associated services to prevent false errors:
+```
+sudo systemctl stop hcuiart.service
+sudo systemctl disable hcuiart.service
+sudo systemctl stop wpa_supplicant.service
+sudo systemctl disable wpa_supplicant.service
+sudo systemctl stop ModemManager.service
+sudo systemctl disable ModemManager.service
+```
+
 ### Install necessary packages
 
 The packages listed below will be necessary, either to setup or operations:
 ```
 sudo apt install -y git
 ```
+
 
 ---
 
@@ -269,10 +310,7 @@ echo c > /proc/sysrq-trigger
 ```
 
 
-
-
-
-
+---
 
 ## Server Software Configuration
 
@@ -321,16 +359,6 @@ The script above performs the following changes w.r.t. a default installation:
 > * upon very first run, default installation files are backed up with a `.bak` suffix
 > * upon every single run including the very first, files are backed up with a
 >   date-stamped suffix (e.g. `.YYYYMMDD_HHMMSS.bak`)
-
-&nbsp;
-
-> **Performance testing notes**
->
-> The following items have been held back so that RPi-Monitor can collect
-> baseline performance data:
->
-> * graphical vs. command line desktop boot
-> * for the VPN (ocserv), the use of DTLS vs. TCP BBR
 
 
 ### Automatic Package Updates (*unattended-upgrades*)
@@ -692,6 +720,23 @@ Save changes to `/etc/ocserv/ocserv.conf` and restart *ocserv*:
 sudo systemctl restart ocserv.service
 ```
 
+#### Restart the service automatically
+
+Edit the *systemd* service file so if the VPN dies, it will
+be restarted automatically:
+```
+sudo nano /etc/systemd/system/ocserv.service
+```
+```diff
+ [Service]
+ PrivateTmp=true
+ PIDFile=/var/run/ocserv.pid
+ ExecStart=/usr/sbin/ocserv --foreground --pid-file /var/run/ocserv.pid --config /etc/ocserv/ocserv.conf
+ ExecReload=/bin/kill -HUP $MAINPID
++Restart=always
++RestartSec=2
+```
+
 #### Create AnyConnect profile file
 
 For compatibility with Cisco clients, create a profile file in
@@ -835,35 +880,9 @@ sudo apt install iptables-persistent -y
 
 #### Future work?
 
-possibly open port 443 in iptables?
-```
-sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
-sudo iptables -I INPUT -p udp --dport 443 -j ACCEPT
-````
+* ufw before.rules instead of ip masquerading? https://gist.github.com/luginbash/52e745ab46cdf46b9061
+* enable TCP BBR congestion control? https://www.linuxbabe.com/ubuntu/enable-google-tcp-bbr-ubuntu
 
-possibly use UFW rules to do things?
-* UFW before.rules for IP masquerading instead of `iptables` commands?
-* need to enable forwarding in UFW version of sysctl (overrides somehow?)
-* http://manpages.ubuntu.com/manpages/precise/en/man8/ufw-framework.8.html
-* hints for ufw? https://gist.github.com/luginbash/52e745ab46cdf46b9061
-
-enable TCP BBR congestion control? [reference](https://www.linuxbabe.com/ubuntu/enable-google-tcp-bbr-ubuntu)
-```
-...
- # TCP and UDP port number
- tcp-port = 443
--udp-port = 443
-+#udp-port = 443
-```
-
-
-
-
-
-
-
-**working here**
-----
 
 ### VNC Server (*tightvncserver*)
 
@@ -999,22 +1018,6 @@ Install so the Conext Combox has somewhere to push event log files?
 Probably better approach: enable FTP service on NAS unit (Synology DS218?)
 
 
-### Network Time Protocol (*ntpd*)
-
-Probably already installed -> enable stats and configure for local network
-
-
-
-
-
-
----
-> *v-- this section put on hold --v*
-
-
-
-
-
 ### Enable the firewall
 
 Ref: <https://www.digitalocean.com/community/tutorials/how-to-setup-a-firewall-with-ufw-on-an-ubuntu-and-debian-cloud-server> 
@@ -1041,13 +1044,6 @@ As other programs get installed, allow them through too:
 | VNC server (*tightvncserver*) | 5901/tcp? |
 | network UPS tools (*nut*)     | 3493 |
 
-* probably need to enable 443/udp for *ocserv*?
-
-
-
-
-
----
 
 ## Other things to look into
 
