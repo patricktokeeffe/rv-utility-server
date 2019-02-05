@@ -140,6 +140,20 @@ to consume bandwidth with potential updates for nothing. Just uninstall them:
 sudo apt autoremove --purge scratch minecraft-pi thunderbird youtube-dl youtube-dlg sonic-pi brasero rhythmbox qjackctl sense-emu-tools pidgin hexchat shotwell cheese synapse plank ubuntu-mate-welcome
 ```
 
+### Disable automatic desktop login
+
+To preserve system resources, boot into command line mode:
+> To start the desktop from the command line, run `startx`.
+```
+sudo raspi-config
+```
+```
+Boot Options -> Desktop / CLI -> Console Text
+Boot Options -> Splash Screen -> No
+```
+
+Before exiting, also run the *raspi-config* internal update tool.
+
 ### Install necessary packages
 
 The packages listed below will be necessary, either to setup or operations:
@@ -1036,25 +1050,6 @@ As other programs get installed, allow them through too:
 ---
 
 ## Other things to look into
-
-### Disable automatic desktop login
-
-The server is intended for headless operation so to preserve system resources, 
-have the computer boot into a terminal instead of the graphical desktop. 
-
-> To start the desktop from the command line, run `startx`.
-> 
-> Graphical (virtual) desktops will be automatically be created for VNC users.
-
-Use *raspi-config* to change the default boot type:
-```
-sudo raspi-config
-```
-```
-Boot Options -> Desktop / CLI -> Console Text
-```
-
-Before exiting, trigger the *raspi-config* internal update tool. 
 
 ### Install other useful packages
 
