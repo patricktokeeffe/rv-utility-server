@@ -201,6 +201,7 @@ The packages listed below will be necessary, either to setup or operations:
 sudo apt install -y git
 ```
 
+
 ---
 
 ## Server Hardening
@@ -309,10 +310,7 @@ echo c > /proc/sysrq-trigger
 ```
 
 
-
-
-
-
+---
 
 ## Server Software Configuration
 
@@ -361,16 +359,6 @@ The script above performs the following changes w.r.t. a default installation:
 > * upon very first run, default installation files are backed up with a `.bak` suffix
 > * upon every single run including the very first, files are backed up with a
 >   date-stamped suffix (e.g. `.YYYYMMDD_HHMMSS.bak`)
-
-&nbsp;
-
-> **Performance testing notes**
->
-> The following items have been held back so that RPi-Monitor can collect
-> baseline performance data:
->
-> * graphical vs. command line desktop boot
-> * for the VPN (ocserv), the use of DTLS vs. TCP BBR
 
 
 ### Automatic Package Updates (*unattended-upgrades*)
@@ -892,35 +880,9 @@ sudo apt install iptables-persistent -y
 
 #### Future work?
 
-possibly open port 443 in iptables?
-```
-sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT
-sudo iptables -I INPUT -p udp --dport 443 -j ACCEPT
-````
+* ufw before.rules instead of ip masquerading? https://gist.github.com/luginbash/52e745ab46cdf46b9061
+* enable TCP BBR congestion control? https://www.linuxbabe.com/ubuntu/enable-google-tcp-bbr-ubuntu
 
-possibly use UFW rules to do things?
-* UFW before.rules for IP masquerading instead of `iptables` commands?
-* need to enable forwarding in UFW version of sysctl (overrides somehow?)
-* http://manpages.ubuntu.com/manpages/precise/en/man8/ufw-framework.8.html
-* hints for ufw? https://gist.github.com/luginbash/52e745ab46cdf46b9061
-
-enable TCP BBR congestion control? [reference](https://www.linuxbabe.com/ubuntu/enable-google-tcp-bbr-ubuntu)
-```
-...
- # TCP and UDP port number
- tcp-port = 443
--udp-port = 443
-+#udp-port = 443
-```
-
-
-
-
-
-
-
-**working here**
-----
 
 ### VNC Server (*tightvncserver*)
 
@@ -1056,22 +1018,6 @@ Install so the Conext Combox has somewhere to push event log files?
 Probably better approach: enable FTP service on NAS unit (Synology DS218?)
 
 
-### Network Time Protocol (*ntpd*)
-
-Probably already installed -> enable stats and configure for local network
-
-
-
-
-
-
----
-> *v-- this section put on hold --v*
-
-
-
-
-
 ### Enable the firewall
 
 Ref: <https://www.digitalocean.com/community/tutorials/how-to-setup-a-firewall-with-ufw-on-an-ubuntu-and-debian-cloud-server> 
@@ -1098,13 +1044,6 @@ As other programs get installed, allow them through too:
 | VNC server (*tightvncserver*) | 5901/tcp? |
 | network UPS tools (*nut*)     | 3493 |
 
-* probably need to enable 443/udp for *ocserv*?
-
-
-
-
-
----
 
 ## Other things to look into
 
