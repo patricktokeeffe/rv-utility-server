@@ -142,6 +142,15 @@ sudo nano /etc/systemd/system/
 +Before=systemd-tmpfiles-setup.service
 ```
 
+### Add a fake hardware clock
+
+Even though a GPS will be added later for a genuine time source, the
+computer will still boot up with the incorrect time. Install a fake
+hardware clock to fix this:
+```
+sudo apt install fake-hwclock -y
+```
+
 ### Remove unnecessary packages
 
 These packages won't be useful to support the Research Van, and we don't want
