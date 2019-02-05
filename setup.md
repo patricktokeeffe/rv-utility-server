@@ -72,11 +72,17 @@ sudo nano /etc/ssh/sshd_config
 sudo systemctl restart ssh.service
 ```
 
-### Enable persistent system logs
+### Enable system logging
 
-Ensure *systemd* keeps logs after reboots by creating log directory:
+Store log files to memory to permit troubleshooting
+without filling up storage or stalling reboots:
 ```
-sudo mkdir -p /var/log/journal
+sudo nano /etc/systemd/journald.conf
+```
+```diff
+ [Journal]
+-#Storage=auto
++Storage=volatile
 ```
 
 ### Fix the *firefox* package
@@ -127,19 +133,6 @@ in Ubuntu 16.04 LTS. To fix, re-run the package configuration:
 
 ```
 sudo dpkg-reconfigure popularity-contest
-```
-
-### Fix the *systemd* journal flush service
-
-To prevent prolonged reboot times, fix the logging service to start
-later in the boot process ([[ref](https://askubuntu.com/questions/1094389/what-is-the-use-of-systemd-journal-flush-service)]):
-```
-sudo cp /lib/systemd/system/systemd-journal-flush.service /etc/systemd/system/
-sudo nano /etc/systemd/system/
-```
-```diff
--Before=systemd-user-sessions.service systemd-tmpfiles-setup.service
-+Before=systemd-tmpfiles-setup.service
 ```
 
 ### Add a fake hardware clock
