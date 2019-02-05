@@ -576,6 +576,13 @@ Specify the location of the new SSL certificate:
 +server-key = /etc/letsencrypt/live/servername/privkey.pem
 ```
 
+Disable namespaces worker isolation because it is not enabled in
+the kernel we are using. (For more information, see [this issue](https://github.com/raspberrypi/linux/issues/1172).)
+```diff
+-isolate-workers = true
++isolate-workers = false
+```
+
 Increase the number of identical clients, since all users will
 share a single account login:
 ```diff
@@ -596,6 +603,19 @@ name, we simply provided the public IP address.
 +default-domain = your.domain.com
 ```
 
+Disable predictable IP addresses since multiple users will be using
+the same account login:
+```diff
+-predictable-ips = true
++predictable-ips = false
+```
+
+Update the `default-domain` value as appropriate:
+```diff
+-#default-domain=example.com
++default-domain=yourserverdomain.com
+```
+
 The van uses the network range 192.168.**3**.0/24 to avoid clashing 
 with popular home network ranges (i.e. 192.168.1.x). The router is 
 192.168.3.1 and it assigns DHCP addresses in the .100-249 range. 
@@ -610,15 +630,14 @@ increase in size so a good range for VPN clients would be .64-96
 +ipv4-network = 192.168.3.64/27
 ```
 
+> Leave the `tunnel-all-dns` parameter unedited to prevent VPN users
+> from sending unecessary traffic over the VPN connection.
+
 Specify the router as the DNS server:
 ```diff
 -dns = 192.168.1.2
 +dns = 192.168.3.1
 ```
-
-It is not necessary to tunnel all DNS traffic through the VPN. 
-Doing so produces extra network traffic, which generally wastes
-resources. Do *not* uncomment the `tunnel-all-dns = true` line.
 
 Enable `ping-leases` as additional safety precaution against
 address collision (e.g. sloppy static IP assignment or changes
@@ -646,9 +665,61 @@ unnecessary traffic (=data usage & power) from VPN clients.
 +#no-route = 192.168.5.0/255.255.255.0
 ```
 
+For compatibility with the proprietary Cisco AnyConnect client,
+enable a profile file for clients (to be created later):
+> The path specified here must be the path of the file created later.
+```diff
+ #user-profile = /path/to/file.xml
++user-profile = /home/user/profile.xml
+```
+
 Save changes to `/etc/ocserv/ocserv.conf` and restart *ocserv*:
 ```
 sudo systemctl restart ocserv.service
+```
+
+#### Create AnyConnect profile file
+
+For compatibility with Cisco clients, create a profile file in
+a location accessible by the vpn user. ([Hat tip](https://gist.github.com/luginbash/52e745ab46cdf46b9061))
+For example, with a vpn account named "user":
+> Use `-u user` with `sudo` to ensure the user account
+> has ownership of the created file. 
+> 
+> Be sure to update this example with server-specific details.
+```
+sudo -u user nano /home/user/profile.xml
+```
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<AnyConnectProfile xmlns="http://schemas.xmlsoap.org/encoding/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schemas.xmlsoap.org/encoding/ AnyConnectProfile.xsd">
+
+    <ClientInitialization>
+        <AutoUpdate UserControllable="true">true</AutoUpdate>
+        <UseStartBeforeLogon UserControllable="false">false</UseStartBeforeLogon>
+        <StrictCertificateTrust>false</StrictCertificateTrust>
+        <RestrictPreferenceCaching>false</RestrictPreferenceCaching>
+        <RestrictTunnelProtocols>IPSec</RestrictTunnelProtocols>
+        <BypassDownloader>true</BypassDownloader>
+        <WindowsVPNEstablishment>AllowRemoteUsers</WindowsVPNEstablishment>
+        <CertEnrollmentPin>pinAllowed</CertEnrollmentPin>
+        <CertificateMatch>
+            <KeyUsage>
+                <MatchKey>Digital_Signature</MatchKey>
+            </KeyUsage>
+            <ExtendedKeyUsage>
+                <ExtendedMatchKey>ClientAuth</ExtendedMatchKey>
+            </ExtendedKeyUsage>
+        </CertificateMatch>
+    </ClientInitialization>
+
+    <ServerList>
+        <HostEntry>
+                <HostName>Alias for host, IP address or FQDN in GUI list</HostName>
+                <HostAddress>IP address or FQDN of the server</HostAddress>
+        </HostEntry>
+    </ServerList>
+</AnyConnectProfile>
 ```
 
 #### Fix DTLS Handshake Failure
