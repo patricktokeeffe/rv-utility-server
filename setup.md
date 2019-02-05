@@ -884,6 +884,52 @@ sudo apt install iptables-persistent -y
 * enable TCP BBR congestion control? https://www.linuxbabe.com/ubuntu/enable-google-tcp-bbr-ubuntu
 
 
+### Network UPS Tools (*nut*)
+
+Install *nut*:
+```
+sudo apt install nut -y
+```
+
+Ensure UPS is plugged in via USB. Add basic config options:
+> *Use the [Hardware compatibility list](https://networkupstools.org/stable-hcl.html)
+> to identify the correct driver type for your UPS.*
+```
+sudo nano /etc/nut/ups.conf
+```
+```diff
++[ups]
++        driver = usbhid-ups
++        port = auto
++        desc = "Data system UPS"
+```
+
+Expose the service to the local area network:
+```
+sudo nano /etc/nut/upsd.conf
+```
+```diff
+ # =======================================================================
+ # LISTEN <address> [<port>]
+ # LISTEN 127.0.0.1 3493
+ # LISTEN ::1 3493
++LISTEN 0.0.0.0 3493
+ #
+```
+
+Finally, enable the service:
+```
+sudo nano /etc/nut/nut.conf
+```
+```diff
+-MODE=none
++MODE=netserver
+```
+```
+sudo systemctl restart nut-server.service
+```
+
+
 ### VNC Server (*tightvncserver*)
 
 > **TODO** check out `x11vnc` as possibly much better 
@@ -950,63 +996,6 @@ sudo systemctl status vncserver@1
 
 References:
 * <https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-vnc-on-ubuntu-18-04>
-
-
-### Network UPS Tools (*nut*)
-
-Install *nut*:
-```
-sudo apt install nut -y
-```
-
-Ensure UPS is plugged in via USB. Add basic config options:
-> *Use the [Hardware compatibility list](https://networkupstools.org/stable-hcl.html)
-> to identify the correct driver type for your UPS.*
-```
-sudo nano /etc/nut/ups.conf
-```
-```diff
-+[ups]
-+        driver = usbhid-ups
-+        port = auto
-+        desc = "Data system UPS"
-```
-
-Expose the service to the local area network:
-```
-sudo nano /etc/nut/upsd.conf
-```
-```diff
- # =======================================================================
- # LISTEN <address> [<port>]
- # LISTEN 127.0.0.1 3493
- # LISTEN ::1 3493
-+LISTEN 0.0.0.0 3493
- #
-```
-
-Finally, enable the service:
-```
-sudo nano /etc/nut/nut.conf
-```
-```diff
--MODE=none
-+MODE=netserver
-```
-```
-sudo systemctl restart nut-server.service
-```
-
-#### Graphical UPS Monitor (*NUT-Monitor*)
-
-It is recommended to have *NUT-Monitor* installed so desktop users can easily
-review the UPS status.
-```
-sudo apt install nut-monitor -y
-```
-
-Launch the program from the *Applications > Internet* menu.
-
 
 
 ### FTP Server (*vsftpd*)
