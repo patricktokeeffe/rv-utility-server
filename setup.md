@@ -154,6 +154,30 @@ Boot Options -> Splash Screen -> No
 
 Before exiting, also run the *raspi-config* internal update tool.
 
+### Disable built-in Bluetooth and WiFi
+
+This project does not require built-in Bluetooth or WiFi and we can lower
+resource consumption by disabling them:
+```
+sudo nano /boot/config.txt
+```
+```diff
+ ...
++# Disable built-in Bluetooth and WiFi
++dtoverlay=pi3-disable-bt
++dtoverlay=pi3-disable-wifi
+```
+
+Also disable associated services to prevent false errors:
+```
+sudo systemctl stop hcuiart.service
+sudo systemctl disable hcuiart.service
+sudo systemctl stop wpa_supplicant.service
+sudo systemctl disable wpa_supplicant.service
+sudo systemctl stop ModemManager.service
+sudo systemctl disable ModemManager.service
+```
+
 ### Install necessary packages
 
 The packages listed below will be necessary, either to setup or operations:
