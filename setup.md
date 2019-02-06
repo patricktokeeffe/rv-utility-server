@@ -962,6 +962,18 @@ the `/home/` directory instead of the default `/srv/ftp`:
 +anon_root=/home
 ```
 
+Using `/home` as the anonymous root keeps the FTP server
+modular: as new accounts are added for other devices, they
+will automatically become browseable subdirectories here.
+However, this also allows anonymous users to browse the
+VPN and admin user home directories, including reading the
+bash history of the admin user. To prevent this, hide
+sensitive accounts by removing read permissions:
+```
+sudo chmod o-rx /home/adminuser
+sudo chmod o-rx /home/vpnuser
+```
+
 Set file permissions on uploads to match the system
 (*umask* of `002`), so anonymous users can browse:
 ```diff
@@ -973,6 +985,14 @@ Allow logged in users to upload files:
 ```diff
 -#write_enable=YES
 +write_enable=YES
+```
+
+And load their home directory instead of the
+entire system:
+```diff
+-#chroot_local_user=YES
++chroot_local_user=YES
++allow_writeable_chroot=YES
 ```
 
 Finally, specify the passive port range allowed
