@@ -975,6 +975,14 @@ Allow logged in users to upload files:
 +write_enable=YES
 ```
 
+Finally, specify the passive port range allowed
+through the firewall:
+```diff
+ ...
++pasv_min_port=40000
++pasv_max_port=41000
+```
+
 Then save the file and restart the service:
 ```
 sudo systemctl restart vsftpd.service
@@ -994,28 +1002,73 @@ sudo nano /etc/ftpusers
 
 ### Enable the firewall
 
-Ref: <https://www.digitalocean.com/community/tutorials/how-to-setup-a-firewall-with-ufw-on-an-ubuntu-and-debian-cloud-server> 
 
-Set to manually installed:
+By default, the *uncomplicated firewall* (*ufw*) is installed
+but inactive. Configure it to provide additional protection
+against abuse by only accepting connections from the local
+area network to certain services:
+
+| Service | Policy |
+|---------|---------------------|
+| SSH     | globally accessible |
+| VPN     | globally accessible |
+| SMTP    | local area network only |
+| NTP     | local area network only |
+| FTP     | local area network only |
+| NUT     | local area network only |
+| RPi-Monitor | local area network only |
+
+First, set *ufw* to manually installed, then setup some
+default rules:
+> *Hint: use `sudo ufw show added` to review rules before
+> enabling the firewall.*
 ```
 sudo apt install ufw
-```
-
-Then apply some default rules:
-```
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
-sudo ufw allow ssh
-
 ```
 
-As other programs get installed, allow them through too:
+Permit SSH & VPN users access from all IPs. For SSH, apply
+rate limiting to limit abuse.
+> We may want to enable on VPN as well?
+```
+sudo ufw allow 443 comment 'ocserv VPN'
+sudo ufw limit ssh
+```
 
-| Description | Rule |
-|-------------|------|
-| VPN server (*ocserv*)         | `allow https` |
-| email relay (*postfix*)       | `allow smtp`  |
-| network UPS tools (*nut*)     | 3493 |
+Now, allow LAN users to access..
+
+..the FTP service:
+```
+sudo ufw allow in from 192.168.3.0/24 port ftp-data
+sudo ufw allow in from 192.168.3.0/24 port ftp
+sudo ufw allow in from 192.168.3.0/24 port 40000:41000 proto tcp
+```
+
+..the email relay service:
+```
+sudo ufw allow from 192.168.3.0/24 to any app postfix
+```
+
+..the network time service:
+```
+sudo ufw allow in from 192.168.3.0/24 port ntp
+```
+
+..the network UPS tools service:
+```
+sudo ufw allow in from 192.168.3.0/24 port nut
+```
+
+..and the server monitoring webpage:
+> This may become port 80 in future work!
+```
+sudo ufw allow in from 192.168.3.0/24 port 8888 proto tcp comment 'RPi-Monitor'
+```
+
+
+
+
 
 
 
