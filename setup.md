@@ -15,11 +15,13 @@ power supply on a battery-backed UPS outlet.
 
 ## Operating System Setup
 
-The operating system choice is [Ubuntu Mate](https://ubuntu-mate.org) because
-the Mate desktop is intuitive for our user base. 
+**N.B. future work will revert to Raspbian because there is simply no
+need for a graphical desktop. The only task normal users might do to
+this server would be change the timezone.**
 
-> Use 16.04.2 release for Raspberry Pi 3 because (as of Oct 2018) the 18.04
-> is not entirely stable.
+The operating system used is [Ubuntu Mate](https://ubuntu-mate.org)
+16.04 LTS for Raspberry Pi 3. (18.04 is not recommended because
+as of late 2018, the package base is still not entirely stable.)
 
 
 ### Installation Wizard
@@ -932,74 +934,6 @@ sudo systemctl restart nut-server.service
 ```
 
 
-### VNC Server (*tightvncserver*)
-
-> **TODO** check out `x11vnc` as possibly much better 
-
-> *FUTURE: possibly use Google Chrome Remote Desktop for screen sharing?
-> As of 2018-10-31, share feature is not available for this platform.*
-
-> *FUTURE: share HDMI desktop session by using `x11vnc` server instead?*
-> * https://raspberrypi.stackexchange.com/questions/28369/how-to-control-pi-hdmi-output-from-laptop-via-vnc?rq=1
-> * https://wiki.xdroop.com//space/Linux/x11vnc+setup
-> * https://serverfault.com/questions/27044/how-to-vnc-into-an-existing-x-session
-> * https://askubuntu.com/questions/107239/vnc-with-current-desktop
-
-> *Follow up on : https://askubuntu.com/questions/611544/mate-desktop-weird-red-icons-in-top-right-corner-how-to-remove-fix?rq=1*
-
-Install *tightvncserver*:
-```
-sudo apt install tightvncserver
-```
-
-Configure using *vncserver* command (as admin user, not root):
-```
-vncserver
-```
-* Specify a password 
-* Optionally, specify a view-only password
-
-Now, test the connection over SSH:
-* Establish a tunnel: `ssh user@server.tld -L 5901:localhost:5901`
-* Connect to `127.0.0.1:5901` using compatible viewer 
-  (such as [VNC Viewer](https://www.realvnc.com/en/connect/download/viewer/))
-
-Should work OK. Finally, create a *systemd* service file:
-```
-sudo nano /etc/systemd/system/vncserver@.service
-```
-```
-[Unit]
-Description=Start TightVNC server at startup
-After=syslog.target network.target
-
-[Service]
-Type=forking
-User=lar
-Group=lar
-WorkingDirectory=/home/lar
-
-PIDFile=/home/lar/.vnc/%H:%i.pid
-ExecStartPre=-/usr/bin/vncserver -kill :%i > /dev/null 2>&1
-ExecStart=/usr/bin/vncserver :%i
-ExecStop=/usr/bin/vncserver -kill :%i
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start the new service:
-```
-sudo systemctl daemon-reload
-sudo systemctl enable vncserver@1.service
-sudo systemctl start vncserver@1
-sudo systemctl status vncserver@1
-```
-
-References:
-* <https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-vnc-on-ubuntu-18-04>
-
-
 ### FTP Server (*vsftpd*)
 
 Install so the Conext Combox has somewhere to push event log files?
@@ -1032,30 +966,7 @@ As other programs get installed, allow them through too:
 |-------------|------|
 | VPN server (*ocserv*)         | `allow https` |
 | email relay (*postfix*)       | `allow smtp`  |
-| VNC server (*tightvncserver*) | 5901/tcp? |
 | network UPS tools (*nut*)     | 3493 |
 
-
-## Other things to look into
-
-### Install other useful packages
-
-Add ability to connect back to WSU VPN (Cisco AnyConnect protocol):
-```
-sudo apt install network-manager-openconnect-gnome -y
-```
-
-#### Fallback static IP on eth0?
-
-Just in case router isn't present and can't assign DHCP reservation?... Give
-unit a static IP so that *postfix* continues to operate?
-
-
-#### Mate "Power Statistics" panel
-
-* observed on this panel: `cannot enable timerstats`
-    * symptoms mirror: https://bugzilla.redhat.com/show_bug.cgi?id=1427621
-        * basically `/proc/timer_stats` is no longer a valid file but *upower*
-          continues to rely on it?
 
 

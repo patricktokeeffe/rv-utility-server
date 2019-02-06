@@ -13,7 +13,6 @@ Core functionality includes:
   To share uninterruptible power supply (UPS) status with networked devices
 * **Administration tools**, including:
     * Self-monitoring webpage
-    * VNC server
     * Firewall
     * Terminal session manager
     * Automatic package updates
