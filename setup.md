@@ -1040,9 +1040,9 @@ Now, allow LAN users to access..
 
 ..the FTP service:
 ```
-sudo ufw allow in from 192.168.3.0/24 port ftp-data
-sudo ufw allow in from 192.168.3.0/24 port ftp
-sudo ufw allow in from 192.168.3.0/24 port 40000:41000 proto tcp
+sudo ufw allow from 192.168.3.0/24 to any port ftp-data comment 'vsftpd'
+sudo ufw allow from 192.168.3.0/24 to any port ftp comment 'vsftpd'
+sudo ufw allow from 192.168.3.0/24 to any port 40000:41000 proto tcp comment 'vsftpd'
 ```
 
 ..the email relay service:
@@ -1052,18 +1052,18 @@ sudo ufw allow from 192.168.3.0/24 to any app postfix
 
 ..the network time service:
 ```
-sudo ufw allow in from 192.168.3.0/24 port ntp
+sudo ufw allow from 192.168.3.0/24 to any port ntp
 ```
 
 ..the network UPS tools service:
 ```
-sudo ufw allow in from 192.168.3.0/24 port nut
+sudo ufw allow from 192.168.3.0/24 to any port nut
 ```
 
 ..and the server monitoring webpage:
 > This may become port 80 in future work!
 ```
-sudo ufw allow in from 192.168.3.0/24 port 8888 proto tcp comment 'RPi-Monitor'
+sudo ufw allow from 192.168.3.0/24 to any port 8888 proto tcp comment 'RPi-Monitor'
 ```
 
 
