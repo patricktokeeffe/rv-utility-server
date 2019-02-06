@@ -551,6 +551,8 @@ sudo systemctl restart rpimonitor.service
 ### VPN Server (*ocserv*)
 
 First, create a normal (non-admin) user to act as the VPN account:
+> This user not be able to login via SSH (good)
+> because password login is disabled.
 ```
 sudo adduser vpn
 ```
