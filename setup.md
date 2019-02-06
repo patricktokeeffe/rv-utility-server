@@ -936,11 +936,60 @@ sudo systemctl restart nut-server.service
 
 ### FTP Server (*vsftpd*)
 
-Install so the Conext Combox has somewhere to push event log files?
-* https://www.digitalocean.com/community/tutorials/how-to-set-up-vsftpd-for-a-user-s-directory-on-ubuntu-16-04
-* https://help.ubuntu.com/lts/serverguide/ftp-server.html
+Install an [FTP server](https://help.ubuntu.com/lts/serverguide/ftp-server.html)
+so the Conext ComBox has a location for pushing log files.
+```
+sudo apt install vsftpd -y
+```
 
-Probably better approach: enable FTP service on NAS unit (Synology DS218?)
+Create a user for uploading files:
+> This user will not be available for SSH login (good)
+> because password logins are disabled.
+```
+sudo adduser combox
+```
+
+Modify the config file:
+```
+sudo nano /etc/vsftpd.conf
+```
+
+Permit anonymous browsing, and serve anonymous users
+the `/home/` directory instead of the default `/srv/ftp`:
+```diff
+-anonymous_enable=NO
++anonymous_enable=YES
++anon_root=/home
+```
+
+Set file permissions on uploads to match the system
+(*umask* of `002`), so anonymous users can browse:
+```diff
+-#local_umask=022
++local_umask=002
+```
+
+Allow logged in users to upload files:
+```diff
+-#write_enable=YES
++write_enable=YES
+```
+
+Then save the file and restart the service:
+```
+sudo systemctl restart vsftpd.service
+```
+
+To prevent other users on the machine from being usable
+FTP accounts, add their names to the blacklist:
+```
+sudo nano /etc/ftpusers
+```
+```diff
+ ...
++adminuser
++vpnuser
+```
 
 
 ### Enable the firewall
