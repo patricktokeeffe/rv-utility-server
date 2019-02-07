@@ -1038,14 +1038,9 @@ area network to certain services:
 | NUT     | local area network only |
 | RPi-Monitor | local area network only |
 
-First, set *ufw* to manually installed, then setup some
-default rules:
-> *Hint: use `sudo ufw show added` to review rules before
-> enabling the firewall.*
+First, set *ufw* to manually installed:
 ```
 sudo apt install ufw
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
 ```
 
 Permit SSH & VPN users access from all IPs. For SSH, apply
@@ -1056,39 +1051,20 @@ sudo ufw allow 443 comment 'ocserv VPN'
 sudo ufw limit ssh
 ```
 
-Now, allow LAN users to access..
-
-..the FTP service:
+Allow LAN users full access to services here:
 ```
-sudo ufw allow from 192.168.3.0/24 to any port ftp-data comment 'vsftpd'
-sudo ufw allow from 192.168.3.0/24 to any port ftp comment 'vsftpd'
-sudo ufw allow from 192.168.3.0/24 to any port 40000:41000 proto tcp comment 'vsftpd'
+sudo ufw allow from 192.168.3.0/24
+sudo ufw allow from 192.168.13.31
 ```
 
-..the email relay service:
+Permit VPN traffic through the firewall:
 ```
-sudo ufw allow from 192.168.3.0/24 to any app postfix
-```
-
-..the network time service:
-```
-sudo ufw allow from 192.168.3.0/24 to any port ntp
+sudo ufw default allow routed
 ```
 
-..the network UPS tools service:
+Finally, allow DHCP multicast traffic (optional
+but creates blocked traffic logs without):
 ```
-sudo ufw allow from 192.168.3.0/24 to any port nut
+sudo ufw allow to 224.0.0.1
 ```
-
-..and the server monitoring webpage:
-> This may become port 80 in future work!
-```
-sudo ufw allow from 192.168.3.0/24 to any port 8888 proto tcp comment 'RPi-Monitor'
-```
-
-
-
-
-
-
 
