@@ -206,20 +206,32 @@ sudo apt install -y git
 
 ---
 
-## Server Hardening
+## Server Software Configuration
 
-Configure the server for reliable and secure operation per this section.
+Packages are listed in a roughly-recommended order of installation:
 
-### Enable watchdog hardware
+### Terminal Session Manager (*tmux*)
 
-Prevent catastrophic system hangs by enabling a hardware watchdog module.
+Install *tmux*:
+```
+sudo apt install tmux
+```
 
-> As of Nov 2018, there are two good approaches
-> ([read more](https://www.raspberrypi.org/forums/viewtopic.php?p=1373613)): 
-> the *watchdog* package, and the *systemd* service named *watchdog*. Since
-> the *systemd* service is apparently not included in Ubuntu Mate 16.04 LTS,
-> we to use the *watchdog* package.
-> ([More reading](https://www.raspberrypi.org/forums/viewtopic.php?f=29&t=147501))
+Modify profile to automatically start *tmux* when logged in over SSH 
+[[ref](https://stackoverflow.com/a/40192494/2946116)]:
+> *Run this command as your admin user, not root (do not use sudo).*
+```
+echo '
+if [[ -z "$TMUX" ]] && [ "$SSH_CONNECTION" != "" ]; then
+    tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux
+fi
+' >> .bashrc
+```
+
+> *Future work?* <https://github.com/tmux-plugins/tmux-continuum>
+
+
+### Watchdog Timer
 
 First enable hardware support:
 ```
@@ -310,34 +322,6 @@ sudo systemctl start watchdog
 ```
 echo c > /proc/sysrq-trigger
 ```
-
-
----
-
-## Server Software Configuration
-
-Packages are listed in a roughly-recommended order of installation:
-
-
-### Terminal Session Manager (*tmux*)
-
-Install *tmux*:
-```
-sudo apt install tmux
-```
-
-Modify profile to automatically start *tmux* when logged in over SSH 
-[[ref](https://stackoverflow.com/a/40192494/2946116)]:
-> *Run this command as your admin user, not root (do not use sudo).*
-```
-echo '
-if [[ -z "$TMUX" ]] && [ "$SSH_CONNECTION" != "" ]; then
-    tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux
-fi
-' >> .bashrc
-```
-
-> *Future work?* <https://github.com/tmux-plugins/tmux-continuum>
 
 
 ### System Monitoring Service (*RPi-Monitor*)
