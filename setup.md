@@ -1068,3 +1068,25 @@ but creates blocked traffic logs without):
 sudo ufw allow to 224.0.0.1
 ```
 
+### fail2ban
+
+Generally, there will be a lot of break-in attempts to the
+SSH server. Reduce that traffic by installing *fail2ban*:
+```
+sudo apt install fail2ban
+```
+
+Enable protection on SSH by creating new config file:
+```
+sudo nano /etc/fail2ban/jail.local
+```
+```
+[sshd]
+enabled = true
+```
+
+And restart the service:
+```
+sudo sytemctl restart fail2ban
+```
+
