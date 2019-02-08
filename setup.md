@@ -191,7 +191,7 @@ Also disable associated services to prevent false errors:
 sudo systemctl stop hcuiart.service
 sudo systemctl disable hcuiart.service
 sudo systemctl stop wpa_supplicant.service
-sudo systemctl disable wpa_supplicant.service
+sudo systemctl mask wpa_supplicant.service
 sudo systemctl stop ModemManager.service
 sudo systemctl disable ModemManager.service
 ```
