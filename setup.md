@@ -918,6 +918,23 @@ sudo systemctl restart nut-server.service
 ```
 
 
+### Local name resolution
+
+To allow accessing computers using a friendly ".local" address, install
+*samba* (for Windows netbios name resolution) and permit mDNS traffic (for
+Bonjour support).
+```
+apt install samba -y
+```
+
+TODO: configure for browsing to FTP folder
+
+tried using Bonjour Printer Service to get office+VPN resolution working.. didn't work
+<https://stackoverflow.com/questions/23624525/standard-mdns-service-on-windows>
+
+sidenote: on linux, it's "avahi" not "bonjour"?
+
+
 ### FTP Server (*vsftpd*)
 
 Install an [FTP server](https://help.ubuntu.com/lts/serverguide/ftp-server.html)
